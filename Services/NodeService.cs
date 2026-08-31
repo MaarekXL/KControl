@@ -10,10 +10,13 @@ public sealed class NodeService : IAsyncDisposable
     private Process? _process;
     public bool IsOwnedRunning => _process is { HasExited: false };
     public event Action<string>? LineReceived;
+    public event Action<int>? Exited;
 
     public Task StartAsync(NodeConfig config, string address, int port, CancellationToken ct = default)
     {
         if (IsOwnedRunning) return Task.CompletedTask;
+        _process?.Dispose();
+        _process = null;
         var executable = Path.GetFullPath(Environment.ExpandEnvironmentVariables(config.Executable), AppContext.BaseDirectory);
         if (!File.Exists(executable)) throw new FileNotFoundException("keryxd.exe is missing.", executable);
         var data = Path.GetFullPath(Environment.ExpandEnvironmentVariables(config.DataDirectory), AppContext.BaseDirectory);
@@ -22,6 +25,7 @@ public sealed class NodeService : IAsyncDisposable
         psi.ArgumentList.Add("--appdir"); psi.ArgumentList.Add(data); psi.ArgumentList.Add($"--rpclisten={address}:{port}"); psi.ArgumentList.Add("--yes");
         var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         process.OutputDataReceived += OnOutput; process.ErrorDataReceived += OnOutput;
+        process.Exited += (_, _) => Exited?.Invoke(process.ExitCode);
         if (!process.Start()) { process.Dispose(); throw new InvalidOperationException("keryxd did not start."); }
         _process = process; process.BeginOutputReadLine(); process.BeginErrorReadLine();
         return Task.CompletedTask;

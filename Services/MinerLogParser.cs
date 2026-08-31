@@ -9,7 +9,9 @@ public sealed partial class MinerLogParser
     {
         var hash = Hashrate().Match(line);
         var accepted = Accepted().Match(line);
+        var acceptedPrefix = AcceptedPrefix().Match(line);
         var rejected = Rejected().Match(line);
+        var rejectedPrefix = RejectedPrefix().Match(line);
         var value = current.HashrateMh;
         if (hash.Success && double.TryParse(hash.Groups[1].Value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var n))
         {
@@ -18,8 +20,10 @@ public sealed partial class MinerLogParser
         }
         var acceptedValue = current.Accepted;
         var rejectedValue = current.Rejected;
-        if (accepted.Success && int.TryParse(accepted.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var acceptedCount)) acceptedValue = acceptedCount;
-        if (rejected.Success && int.TryParse(rejected.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var rejectedCount)) rejectedValue = rejectedCount;
+        var acceptedText = accepted.Success ? accepted.Groups[1].Value : acceptedPrefix.Success ? acceptedPrefix.Groups[1].Value : "";
+        var rejectedText = rejected.Success ? rejected.Groups[1].Value : rejectedPrefix.Success ? rejectedPrefix.Groups[1].Value : "";
+        if (int.TryParse(acceptedText, NumberStyles.None, CultureInfo.InvariantCulture, out var acceptedCount)) acceptedValue = acceptedCount;
+        if (int.TryParse(rejectedText, NumberStyles.None, CultureInfo.InvariantCulture, out var rejectedCount)) rejectedValue = rejectedCount;
         return current with
         {
             HashrateMh = value,
@@ -32,7 +36,11 @@ public sealed partial class MinerLogParser
     private static partial Regex Hashrate();
     [GeneratedRegex(@"(?i)(?:accepted|acc(?:epted)?)[^0-9]*([0-9]+)")]
     private static partial Regex Accepted();
+    [GeneratedRegex(@"(?i)\b([0-9]+)\s+accepted\s+blocks?\b")]
+    private static partial Regex AcceptedPrefix();
     [GeneratedRegex(@"(?i)(?:rejected|rej(?:ected)?)[^0-9]*([0-9]+)")]
     private static partial Regex Rejected();
+    [GeneratedRegex(@"(?i)\b([0-9]+)\s+rejected\s+blocks?\b")]
+    private static partial Regex RejectedPrefix();
 }
 public sealed record MinerStats(double HashrateMh = 0, int Accepted = 0, int Rejected = 0);

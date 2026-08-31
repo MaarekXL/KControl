@@ -22,13 +22,24 @@ public sealed class NvidiaService
         return result;
     }
 
+    public async Task<IReadOnlyDictionary<int, GpuMetrics>> GetAllMetricsAsync(CancellationToken ct = default)
+    {
+        const string fields = "index,temperature.gpu,power.draw,utilization.gpu,memory.used,memory.total,fan.speed";
+        var output = await RunAsync($"--query-gpu={fields} --format=csv,noheader,nounits", ct);
+        var result = new Dictionary<int, GpuMetrics>();
+        foreach (var line in Lines(output))
+        {
+            var p = SplitCsv(line);
+            if (p.Length < 7 || !int.TryParse(p[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var index)) continue;
+            result[index] = new(index, Double(p[1]), Double(p[2]), Double(p[3]), Int(p[4]), Int(p[5]), Double(p[6]));
+        }
+        return result;
+    }
+
     public async Task<GpuMetrics> GetMetricsAsync(int index, CancellationToken ct = default)
     {
-        const string fields = "temperature.gpu,power.draw,utilization.gpu,memory.used,memory.total,fan.speed";
-        var output = await RunAsync($"--id={index} --query-gpu={fields} --format=csv,noheader,nounits", ct);
-        var p = SplitCsv(Lines(output).FirstOrDefault() ?? throw new InvalidOperationException("Réponse NVIDIA vide."));
-        if (p.Length < 6) throw new InvalidOperationException("Réponse NVIDIA incomplète.");
-        return new(Double(p[0]), Double(p[1]), Double(p[2]), Int(p[3]), Int(p[4]), Double(p[5]));
+        var all = await GetAllMetricsAsync(ct);
+        return all.TryGetValue(index, out var metrics) ? metrics : throw new InvalidOperationException("Réponse NVIDIA incomplète.");
     }
 
     public async Task SetPowerLimitAsync(GpuInfo gpu, double watts, CancellationToken ct = default)

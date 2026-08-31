@@ -1,9 +1,93 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
- <sys:String x:Key="AppSubtitle">CONSOLE DE MINAGE GPU NVIDIA</sys:String><sys:String x:Key="Hashrate">HASHRATE</sys:String><sys:String x:Key="Power">PUISSANCE</sys:String><sys:String x:Key="Temperature">TEMPÉRATURE</sys:String><sys:String x:Key="Efficiency">EFFICACITÉ</sys:String><sys:String x:Key="Shares">SHARES ACCEPTÉES / REJETÉES</sys:String>
- <sys:String x:Key="MinerConfiguration">CONFIGURATION DU MINEUR</sys:String><sys:String x:Key="GraphicsCard">CARTE GRAPHIQUE</sys:String><sys:String x:Key="KeryxAddress">ADRESSE KERYX</sys:String><sys:String x:Key="AddressHint">Doit commencer par keryx:</sys:String><sys:String x:Key="ModelProfile">PROFIL DE MODÈLE</sys:String><sys:String x:Key="LocalNodePort">NŒUD LOCAL / PORT</sys:String><sys:String x:Key="NodeRequired">Nœud local requis</sys:String>
- <sys:String x:Key="PowerControl">CONTRÔLE DE PUISSANCE</sys:String><sys:String x:Key="PowerLimit">POWER LIMIT</sys:String><sys:String x:Key="Eco">ÉCO</sys:String><sys:String x:Key="Performance">PERFORMANCE</sys:String><sys:String x:Key="ApplyLimit">APPLIQUER LA LIMITE</sys:String><sys:String x:Key="GpuLoad">CHARGE GPU</sys:String><sys:String x:Key="Memory">MÉMOIRE</sys:String>
- <sys:String x:Key="Commands">COMMANDES</sys:String><sys:String x:Key="StartMiner">▶  DÉMARRER</sys:String><sys:String x:Key="StopMiner">■  ARRÊTER</sys:String><sys:String x:Key="Refresh">↻  RAFRAÎCHIR</sys:String><sys:String x:Key="StartNode">DÉMARRER LE NŒUD</sys:String><sys:String x:Key="StopNode">ARRÊTER LE NŒUD</sys:String><sys:String x:Key="ActivityLog">JOURNAL D’ACTIVITÉ</sys:String><sys:String x:Key="RealtimeOutput">Sortie en temps réel</sys:String><sys:String x:Key="CommunityFrontend">KERYX CONTROL  •  INTERFACE COMMUNAUTAIRE</sys:String>
- <sys:String x:Key="MinerAuthorization">AUTORISATION DU MINEUR</sys:String><sys:String x:Key="OpenAuthorization">🔑  AUTORISATION</sys:String><sys:String x:Key="EscrowKey">CLÉ PUBLIQUE D’ESCROW (64 HEX)</sys:String><sys:String x:Key="EscrowCertificate">CERTIFICAT DU WALLET (128 HEX)</sys:String><sys:String x:Key="CopyKey">COPIER LA CLÉ</sys:String><sys:String x:Key="PasteCertificate">COLLER LE CERTIFICAT</sys:String><sys:String x:Key="SaveCertificate">ENREGISTRER ESCROW.CERT</sys:String><sys:String x:Key="EscrowHelp">Copiez la clé publique dans « Authorise a miner » du wallet, puis collez ici la ligne --escrow-cert renvoyée. Keryx Control extrait automatiquement les 128 caractères. La clé privée escrow.key n’est jamais lue.</sys:String><sys:String x:Key="EscrowWaiting">Démarrez une fois le mineur pour détecter sa clé publique.</sys:String><sys:String x:Key="EscrowKeyDetected">Clé publique détectée dans le journal.</sys:String><sys:String x:Key="EscrowInvalid">Certificat invalide : 128 caractères hexadécimaux sont requis.</sys:String><sys:String x:Key="EscrowSaved">Certificat enregistré. Redémarrez le mineur.</sys:String><sys:String x:Key="EscrowSavedLog">Certificat enregistré dans miner/escrow.cert. Redémarrez le mineur.</sys:String><sys:String x:Key="LogLinesSkipped">Journal saturé : {0} lignes de progression anciennes ont été ignorées.</sys:String><sys:String x:Key="Close">FERMER</sys:String>
- <sys:String x:Key="StatusInitializing">Initialisation…</sys:String><sys:String x:Key="StatusDetecting">Détection NVIDIA…</sys:String><sys:String x:Key="StatusReady">Prêt</sys:String><sys:String x:Key="StatusNoGpu">Aucun GPU NVIDIA</sys:String><sys:String x:Key="StatusNvidiaUnavailable">NVIDIA indisponible</sys:String><sys:String x:Key="StatusMining">Minage en cours</sys:String><sys:String x:Key="StatusStartingNode">Démarrage du nœud…</sys:String><sys:String x:Key="StatusNodeUnavailable">Nœud indisponible</sys:String><sys:String x:Key="StatusNodeOnline">Nœud connecté</sys:String><sys:String x:Key="StatusStopped">Arrêté</sys:String><sys:String x:Key="StatusStopping">Arrêt…</sys:String><sys:String x:Key="StatusStartFailed">Échec du démarrage</sys:String>
- <sys:String x:Key="LogNodeMissing">BLOCAGE : aucun nœud keryxd n'écoute sur {0}:{1}. Démarrez et synchronisez keryxd avant le mineur.</sys:String><sys:String x:Key="LogMinerStarted">Mineur démarré.</sys:String><sys:String x:Key="LogMinerStopped">Mineur arrêté.</sys:String><sys:String x:Key="LogNodeStarted">Nœud keryxd démarré. La première synchronisation peut être longue.</sys:String><sys:String x:Key="LogNodeStopped">Nœud keryxd arrêté.</sys:String><sys:String x:Key="LogNodeMissingExe">keryxd.exe est introuvable dans le dossier keryxd.</sys:String>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+ <sys:String x:Key="AppSubtitle" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">CONSOLE DE MINAGE GPU NVIDIA</sys:String>
+ <sys:String x:Key="Hashrate" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">HASHRATE TOTAL</sys:String>
+ <sys:String x:Key="Power" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">PUISSANCE TOTALE</sys:String>
+ <sys:String x:Key="Temperature" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">TEMPÉRATURE MAX.</sys:String>
+ <sys:String x:Key="Efficiency" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">EFFICACITÉ</sys:String>
+ <sys:String x:Key="Blocks" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">BLOCS ACCEPTÉS / REJETÉS</sys:String>
+ <sys:String x:Key="MinerConfiguration" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">CONFIGURATION DU MINEUR</sys:String>
+ <sys:String x:Key="AutoPerGpu" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Un modèle par GPU</sys:String>
+ <sys:String x:Key="KeryxAddress" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">ADRESSE KERYX</sys:String>
+ <sys:String x:Key="AddressHint" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Doit commencer par keryx:</sys:String>
+ <sys:String x:Key="LocalNodePort" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">NŒUD LOCAL / PORT</sys:String>
+ <sys:String x:Key="PowerControl" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">CONTRÔLE DE PUISSANCE</sys:String>
+ <sys:String x:Key="PowerGpu" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU À RÉGLER</sys:String>
+ <sys:String x:Key="PowerLimit" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">POWER LIMIT</sys:String>
+ <sys:String x:Key="Eco" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">ÉCO</sys:String>
+ <sys:String x:Key="Performance" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">PERFORMANCE</sys:String>
+ <sys:String x:Key="ApplyLimit" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">APPLIQUER LA LIMITE</sys:String>
+ <sys:String x:Key="GpuLoad" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">CHARGE GPU / VENTILATEUR</sys:String>
+ <sys:String x:Key="Memory" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">MÉMOIRE / HASHRATE</sys:String>
+ <sys:String x:Key="Commands" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">COMMANDES</sys:String>
+ <sys:String x:Key="StartMiner" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">▶  DÉMARRER</sys:String>
+ <sys:String x:Key="StopMiner" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">■  ARRÊTER</sys:String>
+ <sys:String x:Key="Refresh" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">↻  RAFRAÎCHIR</sys:String>
+ <sys:String x:Key="StartNode" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">DÉMARRER LE NŒUD</sys:String>
+ <sys:String x:Key="StopNode" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">ARRÊTER LE NŒUD</sys:String>
+ <sys:String x:Key="ActivityLog" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">JOURNAL D’ACTIVITÉ</sys:String>
+ <sys:String x:Key="ResumeLive" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">REPRENDRE EN DIRECT</sys:String>
+ <sys:String x:Key="CopyLog" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">COPIER LE JOURNAL</sys:String>
+ <sys:String x:Key="CommunityFrontend" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">KERYX CONTROL  •  INTERFACE COMMUNAUTAIRE</sys:String>
+
+ <sys:String x:Key="MinerAuthorization" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">AUTORISATION DU MINEUR</sys:String>
+ <sys:String x:Key="AuthorizationWindowTitle" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Autorisation du mineur Keryx</sys:String>
+ <sys:String x:Key="OpenAuthorization" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">🔑  AUTORISATION</sys:String>
+ <sys:String x:Key="EscrowKey" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">CLÉ PUBLIQUE D’ESCROW (64 HEX)</sys:String>
+ <sys:String x:Key="EscrowCertificate" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">CERTIFICAT DU WALLET (128 HEX)</sys:String>
+ <sys:String x:Key="CopyKey" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">COPIER LA CLÉ</sys:String>
+ <sys:String x:Key="PasteCertificate" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">COLLER LE CERTIFICAT</sys:String>
+ <sys:String x:Key="SaveCertificate" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">ENREGISTRER ESCROW.CERT</sys:String>
+ <sys:String x:Key="EscrowHelp" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Copiez la clé publique dans « Authorise a miner » du wallet, puis collez ici la ligne --escrow-cert renvoyée. Keryx Control extrait automatiquement les 128 caractères. La clé privée escrow.key n’est jamais lue.</sys:String>
+ <sys:String x:Key="EscrowWaiting" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Démarrez une fois le mineur pour détecter sa clé publique.</sys:String>
+ <sys:String x:Key="EscrowKeyDetected" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Clé publique détectée dans le journal.</sys:String>
+ <sys:String x:Key="EscrowInvalid" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificat invalide : 128 caractères hexadécimaux sont requis.</sys:String>
+ <sys:String x:Key="EscrowSaved" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificat enregistré. Redémarrez le mineur.</sys:String>
+ <sys:String x:Key="EscrowSavedLog" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificat enregistré dans miner/escrow.cert. Redémarrez le mineur.</sys:String>
+ <sys:String x:Key="Close" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">FERMER</sys:String>
+
+ <sys:String x:Key="StatusInitializing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Initialisation…</sys:String>
+ <sys:String x:Key="StatusDetecting" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Détection NVIDIA…</sys:String>
+ <sys:String x:Key="StatusReady" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Prêt</sys:String>
+ <sys:String x:Key="StatusNoGpu" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Aucun GPU NVIDIA</sys:String>
+ <sys:String x:Key="StatusNvidiaUnavailable" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">NVIDIA indisponible</sys:String>
+ <sys:String x:Key="StatusMiningStarting" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Démarrage du mineur…</sys:String>
+ <sys:String x:Key="StatusMining" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Minage en cours</sys:String>
+ <sys:String x:Key="StatusStartingNode" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Démarrage du nœud…</sys:String>
+ <sys:String x:Key="StatusNodeUnavailable" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Nœud indisponible</sys:String>
+ <sys:String x:Key="StatusNodeOnline" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Nœud connecté</sys:String>
+ <sys:String x:Key="StatusNodeSynchronized" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Nœud synchronisé</sys:String>
+ <sys:String x:Key="StatusNodeSynchronizing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronisation du nœud…</sys:String>
+ <sys:String x:Key="StatusNodeSyncRequired" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronisation requise</sys:String>
+ <sys:String x:Key="StatusAuthorizationRequired" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Autorisation requise</sys:String>
+ <sys:String x:Key="StatusIpfsError" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Erreur IPFS</sys:String>
+ <sys:String x:Key="StatusStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Arrêté</sys:String>
+ <sys:String x:Key="StatusStopping" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Arrêt…</sys:String>
+ <sys:String x:Key="StatusStartFailed" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Échec du démarrage</sys:String>
+
+ <sys:String x:Key="NodeSyncUnknown" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronisation : état inconnu</sys:String>
+ <sys:String x:Key="NodeNotSynchronized" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronisation : non terminée</sys:String>
+ <sys:String x:Key="NodeSynchronized" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronisation : terminée</sys:String>
+ <sys:String x:Key="NodeSynchronizingPercent" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronisation : {0} %</sys:String>
+ <sys:String x:Key="ModelDownloading" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Téléchargement du modèle : {0} %</sys:String>
+ <sys:String x:Key="ModelReady" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Modèle chargé</sys:String>
+ <sys:String x:Key="LogPausedError" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Erreur détectée — journal en pause</sys:String>
+ <sys:String x:Key="LogPausedCount" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Journal en pause — {0} nouveau(x)</sys:String>
+ <sys:String x:Key="LogLinesSkipped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Journal saturé : {0} anciennes lignes ont été ignorées.</sys:String>
+
+ <sys:String x:Key="ConfigurationInvalid" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Configuration invalide</sys:String>
+ <sys:String x:Key="LogNodeMissing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Aucun nœud keryxd n’écoute sur {0}:{1}.</sys:String>
+ <sys:String x:Key="LogInvalidWallet" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Adresse invalide : utilisez l’adresse complète commençant par keryx:.</sys:String>
+ <sys:String x:Key="LogNodeSyncRequired" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le nœud doit terminer sa synchronisation avant le minage.</sys:String>
+ <sys:String x:Key="LogMinerStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Mineur démarré.</sys:String>
+ <sys:String x:Key="LogMinerStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Mineur arrêté.</sys:String>
+ <sys:String x:Key="LogNodeStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Nœud keryxd démarré. La première synchronisation peut être longue.</sys:String>
+ <sys:String x:Key="LogNodeStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Nœud keryxd arrêté.</sys:String>
+ <sys:String x:Key="LogNodeExited" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le nœud keryxd s’est arrêté de manière inattendue (code {0}).</sys:String>
+ <sys:String x:Key="LogNodeMissingExe" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">keryxd.exe est introuvable dans le dossier keryxd.</sys:String>
+ <sys:String x:Key="LogIpfsPortChanged" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">IPFS : le port {0} était occupé, la passerelle utilise maintenant le port {1}.</sys:String>
+ <sys:String x:Key="LogStatsPortChanged" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Statistiques : le port {0} était occupé, le mineur utilisera le port {1}.</sys:String>
+ <sys:String x:Key="LogPowerApplied" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0} : power limit réglé à {1:0.#} W.</sys:String>
+ <sys:String x:Key="LogPowerRestored" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0} : power limit restauré à {1:0.#} W.</sys:String>
+ <sys:String x:Key="ExitTitle" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Quitter Keryx Control</sys:String>
+ <sys:String x:Key="ExitConfirmation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le mineur ou le nœud est actif. Les arrêter proprement et quitter ?</sys:String>
 </ResourceDictionary>
