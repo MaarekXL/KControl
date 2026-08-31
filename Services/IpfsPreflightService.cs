@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -21,7 +22,7 @@ public sealed class IpfsPreflightService
         var configPath = Path.Combine(repository, "config");
         if (!File.Exists(ipfsExecutable)) return new(false);
 
-        if (!File.Exists(configPath) && !IsPortAvailable(8080))
+        if (!File.Exists(configPath))
             await InitializeRepositoryAsync(ipfsExecutable, minerFolder, repository, ct);
 
         if (!File.Exists(configPath)) return new(false);
@@ -31,7 +32,12 @@ public sealed class IpfsPreflightService
 
         var apiPort = ParseTcpPort(addresses["API"]?.GetValue<string>()) ?? 5001;
         if (!IsPortAvailable(apiPort))
-            throw new InvalidOperationException($"IPFS API port {apiPort} is already in use.");
+        {
+            // Keryx Miner deliberately reuses an already-running local Kubo API.
+            // Only fail when another service owns the configured port.
+            if (await IsIpfsApiReadyAsync(apiPort, ct)) return new(false);
+            throw new InvalidOperationException($"IPFS API port {apiPort} is already in use by another service.");
+        }
 
         var gatewayPort = ParseTcpPort(addresses["Gateway"]?.GetValue<string>()) ?? 8080;
         if (IsPortAvailable(gatewayPort)) return new(false);
@@ -92,5 +98,19 @@ public sealed class IpfsPreflightService
         }
         catch (SocketException) { return false; }
         finally { try { listener?.Stop(); } catch { } }
+    }
+
+    private static async Task<bool> IsIpfsApiReadyAsync(int port, CancellationToken ct)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(2));
+            using var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+            using var response = await client.PostAsync($"http://127.0.0.1:{port}/api/v0/version", null, timeout.Token);
+            return response.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
+        catch (HttpRequestException) { return false; }
     }
 }

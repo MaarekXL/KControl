@@ -4,12 +4,14 @@
  <sys:String x:Key="Power" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">TOTAL POWER</sys:String>
  <sys:String x:Key="Temperature" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">MAX. TEMPERATURE</sys:String>
  <sys:String x:Key="Efficiency" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">EFFICIENCY</sys:String>
- <sys:String x:Key="Blocks" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">ACCEPTED / REJECTED BLOCKS</sys:String>
+ <sys:String x:Key="Blocks" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">ACCEPTED / REJECTED</sys:String>
  <sys:String x:Key="MinerConfiguration" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">MINER CONFIGURATION</sys:String>
  <sys:String x:Key="AutoPerGpu" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">One model per GPU</sys:String>
  <sys:String x:Key="KeryxAddress" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">KERYX ADDRESS</sys:String>
  <sys:String x:Key="AddressHint" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Must start with keryx:</sys:String>
  <sys:String x:Key="LocalNodePort" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">LOCAL NODE / PORT</sys:String>
+ <sys:String x:Key="MiningMode" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">MINING MODE</sys:String>
+ <sys:String x:Key="PoolAddress" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">STRATUM V3 POOL</sys:String>
  <sys:String x:Key="PowerControl" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">POWER CONTROL</sys:String>
  <sys:String x:Key="PowerGpu" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU TO ADJUST</sys:String>
  <sys:String x:Key="PowerLimit" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">POWER LIMIT</sys:String>
@@ -70,15 +72,22 @@
  <sys:String x:Key="NodeSynchronizingPercent" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronization: {0}%</sys:String>
  <sys:String x:Key="ModelDownloading" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Model download: {0}%</sys:String>
  <sys:String x:Key="ModelReady" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Model loaded</sys:String>
+ <sys:String x:Key="PoolNoLocalServices" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">No local node or wallet authorization required</sys:String>
+ <sys:String x:Key="PoolManagedServices" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Pool v3 mode: no local node or escrow certificate is required at startup.</sys:String>
+ <sys:String x:Key="OpoiInferenceActive" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">OPoI inference active — mining temporarily paused</sys:String>
+ <sys:String x:Key="ServiceStanding" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Service status: {0}</sys:String>
  <sys:String x:Key="LogPausedError" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Error detected — log paused</sys:String>
  <sys:String x:Key="LogPausedCount" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Log paused — {0} new</sys:String>
  <sys:String x:Key="LogLinesSkipped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Log saturated: {0} old lines were skipped.</sys:String>
 
  <sys:String x:Key="ConfigurationInvalid" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Invalid configuration</sys:String>
  <sys:String x:Key="LogNodeMissing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">No keryxd node is listening on {0}:{1}.</sys:String>
+ <sys:String x:Key="LogInvalidPool" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Invalid pool address. Expected format: stratum+tcp://host:port.</sys:String>
+ <sys:String x:Key="LogPoolNotReachable" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">The pool did not answer the connection test. The miner will still start and handle reconnections.</sys:String>
  <sys:String x:Key="LogInvalidWallet" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Invalid address: use the complete address beginning with keryx:.</sys:String>
  <sys:String x:Key="LogNodeSyncRequired" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">The node must finish synchronizing before mining.</sys:String>
  <sys:String x:Key="LogMinerStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Miner started.</sys:String>
+ <sys:String x:Key="LogPoolMinerStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Miner started in Stratum v3 pool mode.</sys:String>
  <sys:String x:Key="LogMinerStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Miner stopped.</sys:String>
  <sys:String x:Key="LogNodeStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">keryxd node started. The first synchronization can take a long time.</sys:String>
  <sys:String x:Key="LogNodeStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">keryxd node stopped.</sys:String>

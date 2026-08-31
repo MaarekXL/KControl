@@ -34,4 +34,16 @@ public sealed class TierConfig
     public bool IsAuto => Id.Equals("auto", StringComparison.OrdinalIgnoreCase);
 }
 
-public sealed record GpuLaunchSelection(int Index, bool IsSelected, bool IsAuto, string ForceName, string AutoForceName);
+public sealed record GpuLaunchSelection(
+    int Index,
+    string Uuid,
+    bool IsSelected,
+    bool IsAuto,
+    string ForceName,
+    string AutoForceName);
+
+public sealed record MinerConnection(string Address, int? Port, bool IsPool)
+{
+    public static MinerConnection Solo(string address, int port) => new(address, port, false);
+    public static MinerConnection Pool(string address) => new(address, null, true);
+}

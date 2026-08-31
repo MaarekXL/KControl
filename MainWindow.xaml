@@ -40,7 +40,7 @@
   </Border>
 
   <Grid Grid.Row="1" Margin="19,14,19,9">
-   <Grid.RowDefinitions><RowDefinition Height="102"/><RowDefinition Height="325"/><RowDefinition Height="6"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <Grid.RowDefinitions><RowDefinition Height="102"/><RowDefinition Height="345"/><RowDefinition Height="6"/><RowDefinition Height="*"/></Grid.RowDefinitions>
    <UniformGrid Columns="5">
     <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="{DynamicResource Hashrate}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding Hashrate}" FontSize="23" FontWeight="SemiBold" Margin="0,8,0,0"/><TextBlock Text="{Binding Uptime}" Style="{StaticResource Caption}" Margin="0,3,0,0"/></StackPanel></Border>
     <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="{DynamicResource Power}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding Power}" FontSize="23" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
@@ -67,7 +67,20 @@
       </ScrollViewer>
       <Grid Grid.Row="2" Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
        <StackPanel Margin="0,0,12,0"><TextBlock Text="{DynamicResource KeryxAddress}" Style="{StaticResource Caption}"/><TextBox Text="{Binding Wallet, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding ConfigurationEnabled}"/><TextBlock Text="{DynamicResource AddressHint}" Style="{StaticResource Caption}" Foreground="#496955"/></StackPanel>
-       <StackPanel Grid.Column="1" Margin="12,0,0,0"><TextBlock Text="{DynamicResource LocalNodePort}" Style="{StaticResource Caption}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="82"/></Grid.ColumnDefinitions><TextBox Text="{Binding NodeAddress, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding ConfigurationEnabled}"/><TextBox Grid.Column="1" Margin="8,4,0,10" Text="{Binding NodePort}" IsEnabled="{Binding ConfigurationEnabled}"/></Grid><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><Button Content="{DynamicResource StartNode}" Command="{Binding StartNodeCommand}" Style="{StaticResource Secondary}" Padding="5,7" Margin="0,0,4,0" FontSize="10"/><Button Grid.Column="1" Content="{DynamicResource StopNode}" Command="{Binding StopNodeCommand}" Style="{StaticResource Secondary}" Padding="5,7" Margin="4,0,0,0" FontSize="10"/></Grid><TextBlock Text="{Binding NodeSyncText}" Foreground="#79D895" FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0"/></StackPanel>
+       <StackPanel Grid.Column="1" Margin="12,0,0,0">
+        <TextBlock Text="{DynamicResource MiningMode}" Style="{StaticResource Caption}"/>
+        <ComboBox ItemsSource="{Binding MiningModeOptions}" SelectedItem="{Binding SelectedMiningMode}" DisplayMemberPath="DisplayName" IsEnabled="{Binding ConnectionConfigurationEnabled}"/>
+        <StackPanel Visibility="{Binding IsSoloMode, Converter={StaticResource BoolVisibility}}">
+         <TextBlock Text="{DynamicResource LocalNodePort}" Style="{StaticResource Caption}"/>
+         <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="82"/></Grid.ColumnDefinitions><TextBox Text="{Binding NodeAddress, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding ConnectionConfigurationEnabled}"/><TextBox Grid.Column="1" Margin="8,4,0,10" Text="{Binding NodePort}" IsEnabled="{Binding ConnectionConfigurationEnabled}"/></Grid>
+         <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><Button Content="{DynamicResource StartNode}" Command="{Binding StartNodeCommand}" Style="{StaticResource Secondary}" Padding="5,7" Margin="0,0,4,0" FontSize="10"/><Button Grid.Column="1" Content="{DynamicResource StopNode}" Command="{Binding StopNodeCommand}" Style="{StaticResource Secondary}" Padding="5,7" Margin="4,0,0,0" FontSize="10"/></Grid>
+        </StackPanel>
+        <StackPanel Visibility="{Binding IsPoolMode, Converter={StaticResource BoolVisibility}}">
+         <TextBlock Text="{DynamicResource PoolAddress}" Style="{StaticResource Caption}"/>
+         <TextBox Text="{Binding PoolAddress, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding ConnectionConfigurationEnabled}"/>
+        </StackPanel>
+        <TextBlock Text="{Binding NodeSyncText}" Foreground="#79D895" FontSize="11" HorizontalAlignment="Center" Margin="0,2,0,0" TextWrapping="Wrap"/>
+       </StackPanel>
       </Grid>
      </Grid>
     </Border>
@@ -79,12 +92,12 @@
       <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="{DynamicResource Eco}" Style="{StaticResource Caption}"/><TextBlock Grid.Column="1" Text="{DynamicResource Performance}" Style="{StaticResource Caption}" HorizontalAlignment="Right"/></Grid>
       <Button Content="{DynamicResource ApplyLimit}" Command="{Binding ApplyPowerCommand}" Style="{StaticResource Secondary}" Margin="0,14,0,0"/>
       <Separator Background="{StaticResource Line}" Margin="0,10"/>
-      <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{DynamicResource GpuLoad}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding SelectedPowerGpu.Utilization}" FontSize="16" FontWeight="SemiBold" Margin="0,4"/><TextBlock Text="{Binding SelectedPowerGpu.Fan}" Style="{StaticResource Caption}"/></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="{DynamicResource Memory}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding SelectedPowerGpu.Memory}" FontSize="12" FontWeight="SemiBold" Margin="0,6"/><TextBlock Text="{Binding SelectedPowerGpu.Hashrate}" Style="{StaticResource Caption}"/></StackPanel></Grid>
+      <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{DynamicResource GpuLoad}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding SelectedPowerGpu.Utilization}" FontSize="16" FontWeight="SemiBold" Margin="0,4"/><TextBlock Text="{Binding SelectedPowerGpu.Fan}" Style="{StaticResource Caption}"/></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="{DynamicResource Memory}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding SelectedPowerGpu.Memory}" FontSize="12" FontWeight="SemiBold" Margin="0,6"/><TextBlock Text="{Binding SelectedPowerGpu.Hashrate}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding SelectedPowerGpu.MemoryTemperatureDisplay}" Style="{StaticResource Caption}" Margin="0,3,0,0"/></StackPanel></Grid>
      </StackPanel>
     </Border>
 
     <Border Grid.Column="2" Style="{StaticResource Card}">
-     <StackPanel><TextBlock Text="{DynamicResource Commands}" Style="{StaticResource Title}"/><Button Content="{DynamicResource StartMiner}" Command="{Binding StartCommand}" Style="{StaticResource Primary}"/><Button Content="{DynamicResource StopMiner}" Command="{Binding StopCommand}" Style="{StaticResource Danger}"/><Button Content="{DynamicResource Refresh}" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}"/><Button Content="{DynamicResource OpenAuthorization}" Click="OpenEscrow_Click" Style="{StaticResource Secondary}"/><TextBlock Text="{Binding ModelStatusText}" Foreground="#79D895" TextWrapping="Wrap" FontSize="11" HorizontalAlignment="Center" Margin="0,5"/><ProgressBar Height="6" Minimum="0" Maximum="100" Value="{Binding ModelProgress, Mode=OneWay}" Visibility="{Binding ModelProgressVisible, Converter={StaticResource BoolVisibility}}" Foreground="{StaticResource Green}" Background="#132219"/>
+     <StackPanel><TextBlock Text="{DynamicResource Commands}" Style="{StaticResource Title}"/><Button Content="{DynamicResource StartMiner}" Command="{Binding StartCommand}" Style="{StaticResource Primary}"/><Button Content="{DynamicResource StopMiner}" Command="{Binding StopCommand}" Style="{StaticResource Danger}"/><Button Content="{DynamicResource Refresh}" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}"/><Button Content="{DynamicResource OpenAuthorization}" Click="OpenEscrow_Click" Style="{StaticResource Secondary}" Visibility="{Binding IsSoloMode, Converter={StaticResource BoolVisibility}}"/><TextBlock Text="{DynamicResource PoolManagedServices}" Visibility="{Binding IsPoolMode, Converter={StaticResource BoolVisibility}}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextAlignment="Center" Margin="2,4"/><TextBlock Text="{Binding ModelStatusText}" Foreground="#79D895" TextWrapping="Wrap" FontSize="11" HorizontalAlignment="Center" Margin="0,5"/><TextBlock Text="{Binding ServiceStatusText}" Foreground="#F2C66D" TextWrapping="Wrap" FontSize="11" HorizontalAlignment="Center" Margin="0,2"/><ProgressBar Height="6" Minimum="0" Maximum="100" Value="{Binding ModelProgress, Mode=OneWay}" Visibility="{Binding ModelProgressVisible, Converter={StaticResource BoolVisibility}}" Foreground="{StaticResource Green}" Background="#132219"/>
      </StackPanel>
     </Border>
    </Grid>
@@ -104,6 +117,6 @@
    </Border>
   </Grid>
 
-  <Border Grid.Row="2" Background="#070C08" BorderBrush="#122319" BorderThickness="0,1,0,0"><Grid Margin="23,0"><TextBlock Text="{DynamicResource CommunityFrontend}" Style="{StaticResource Caption}" VerticalAlignment="Center"/><TextBlock Text="v0.7.1  •  RTX 4000 / RTX 5000" HorizontalAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center"/></Grid></Border>
+  <Border Grid.Row="2" Background="#070C08" BorderBrush="#122319" BorderThickness="0,1,0,0"><Grid Margin="23,0"><TextBlock Text="{DynamicResource CommunityFrontend}" Style="{StaticResource Caption}" VerticalAlignment="Center"/><TextBlock Text="v0.7.2  •  Keryx Miner 0.5.4-PoM  •  RTX 4000 / RTX 5000" HorizontalAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center"/></Grid></Border>
  </Grid>
 </Window>

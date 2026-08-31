@@ -26,29 +26,34 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly object _pendingLogGate = new();
     private readonly Queue<(string Line, bool IsMiner)> _pendingLogs = new();
     private readonly Dictionary<string, PowerChange> _powerChanges = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<int, int> _minerGpuIndexMap = [];
     private readonly HashSet<string> _pausedBlockers = new(StringComparer.OrdinalIgnoreCase);
     private AppConfig _config = new();
     private UserSettings _settings = new();
     private bool _logDrainScheduled, _logPaused, _logPausedForError, _blockingErrorActive, _shutdownStarted, _minerStopRequested, _nodeStopRequested;
     private int _droppedLogCount, _newLogCount, _lastDisplayedSyncPercent = -1, _lastDisplayedModelPercent = -1;
-    private string _lastNodeLine = "", _lastMinerLine = "", _language = "fr", _wallet = "", _nodeAddress = "127.0.0.1", _status = "", _statusKey = "StatusInitializing", _statusForeground = "#8BFFAE", _statusDot = "#22E66D";
+    private string _lastNodeLine = "", _lastMinerLine = "", _language = "fr", _wallet = "", _nodeAddress = "127.0.0.1", _poolAddress = "", _status = "", _statusKey = "StatusInitializing", _statusForeground = "#8BFFAE", _statusDot = "#22E66D";
     private DateTime _lastNodeLineAt = DateTime.MinValue, _lastMinerLineAt = DateTime.MinValue, _lastMonitoringError = DateTime.MinValue;
-    private int _nodePort = 22110, _accepted, _rejected;
+    private int _nodePort = 22110;
+    private long _accepted, _rejected;
     private int? _nodeSyncPercent;
     private bool _nodeSyncKnown;
-    private string _hashrate = "0.00 MH/s", _power = "— W", _temperature = "— °C", _utilization = "— %", _memory = "—", _efficiency = "— MH/W", _uptime = "—", _nodeSyncText = "", _modelStatusText = "";
+    private string _hashrate = "0.00 MH/s", _power = "— W", _temperature = "— °C", _utilization = "— %", _memory = "—", _efficiency = "— MH/W", _uptime = "—", _nodeSyncText = "", _modelStatusText = "", _serviceStatusText = "";
     private double _modelProgress;
     private bool _modelProgressVisible;
     private GpuDeviceViewModel? _selectedPowerGpu;
+    private MiningModeOptionViewModel? _selectedMiningMode;
     private string _escrowPublicKey = "", _escrowCertificate = "", _escrowStatus = "";
     private MinerStats _fallbackStats = new();
 
     public ObservableCollection<GpuDeviceViewModel> Gpus { get; } = [];
     public ObservableCollection<TierOptionViewModel> TierOptions { get; } = [];
+    public ObservableCollection<MiningModeOptionViewModel> MiningModeOptions { get; } = [];
     public ObservableCollection<LogEntry> Logs { get; } = [];
 
     public string Language { get => _language; private set => Set(ref _language, value); }
     public string Wallet { get => _wallet; set { Set(ref _wallet, value); RefreshCommands(); } }
+    public string PoolAddress { get => _poolAddress; set { Set(ref _poolAddress, value); RefreshCommands(); } }
     public string NodeAddress { get => _nodeAddress; set { if (Set(ref _nodeAddress, value)) ResetExternalNodeSyncState(); RefreshCommands(); } }
     public int NodePort { get => _nodePort; set { if (Set(ref _nodePort, value)) ResetExternalNodeSyncState(); RefreshCommands(); } }
     public string Status { get => _status; private set => Set(ref _status, value); }
@@ -61,12 +66,13 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public string Memory { get => _memory; private set => Set(ref _memory, value); }
     public string Efficiency { get => _efficiency; private set => Set(ref _efficiency, value); }
     public string Uptime { get => _uptime; private set => Set(ref _uptime, value); }
-    public int Accepted { get => _accepted; private set => Set(ref _accepted, value); }
-    public int Rejected { get => _rejected; private set => Set(ref _rejected, value); }
+    public long Accepted { get => _accepted; private set => Set(ref _accepted, value); }
+    public long Rejected { get => _rejected; private set => Set(ref _rejected, value); }
     public string NodeSyncText { get => _nodeSyncText; private set => Set(ref _nodeSyncText, value); }
     public int? NodeSyncPercent { get => _nodeSyncPercent; private set { Set(ref _nodeSyncPercent, value); RefreshNodeSyncText(); RefreshCommands(); } }
     public bool NodeSyncKnown { get => _nodeSyncKnown; private set { Set(ref _nodeSyncKnown, value); RefreshNodeSyncText(); RefreshCommands(); } }
     public string ModelStatusText { get => _modelStatusText; private set => Set(ref _modelStatusText, value); }
+    public string ServiceStatusText { get => _serviceStatusText; private set => Set(ref _serviceStatusText, value); }
     public double ModelProgress { get => _modelProgress; private set => Set(ref _modelProgress, value); }
     public bool ModelProgressVisible { get => _modelProgressVisible; private set => Set(ref _modelProgressVisible, value); }
     public bool IsLogPaused { get => _logPaused; private set { Set(ref _logPaused, value); Raise(nameof(LogPauseText)); } }
@@ -76,6 +82,21 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool IsNodeRunning => _node.IsOwnedRunning;
     public bool HasActiveProcesses => IsMinerRunning || IsNodeRunning;
     public bool ConfigurationEnabled => !IsMinerRunning;
+    public bool ConnectionConfigurationEnabled => !IsMinerRunning && !IsNodeRunning;
+    public MiningModeOptionViewModel? SelectedMiningMode
+    {
+        get => _selectedMiningMode;
+        set
+        {
+            if (!Set(ref _selectedMiningMode, value)) return;
+            Raise(nameof(IsSoloMode)); Raise(nameof(IsPoolMode)); Raise(nameof(NodeControlsEnabled));
+            RefreshNodeSyncText(); RefreshCommands();
+            if (!_miner.IsRunning) SetStatus("StatusReady");
+        }
+    }
+    public bool IsPoolMode => SelectedMiningMode?.Id.Equals("pool", StringComparison.OrdinalIgnoreCase) == true;
+    public bool IsSoloMode => !IsPoolMode;
+    public bool NodeControlsEnabled => IsSoloMode && !_miner.IsRunning;
     public string EscrowPublicKey { get => _escrowPublicKey; private set => Set(ref _escrowPublicKey, value); }
     public string EscrowCertificate { get => _escrowCertificate; set => Set(ref _escrowCertificate, value); }
     public string EscrowStatus { get => _escrowStatus; private set => Set(ref _escrowStatus, value); }
@@ -110,10 +131,13 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public MainViewModel()
     {
+        MiningModeOptions.Add(new("solo", "Solo — nœud keryxd", "Solo — keryxd node", _language));
+        MiningModeOptions.Add(new("pool", "Pool — Stratum v3", "Pool — Stratum v3", _language));
+        _selectedMiningMode = MiningModeOptions[0];
         StartCommand = new(StartAsync, CanStartMiner);
         StopCommand = new(StopAsync, () => _miner.IsRunning);
-        StartNodeCommand = new(StartNodeAsync, () => !_node.IsOwnedRunning && !_miner.IsRunning);
-        StopNodeCommand = new(StopNodeAsync, () => _node.IsOwnedRunning && !_miner.IsRunning);
+        StartNodeCommand = new(StartNodeAsync, () => IsSoloMode && !_node.IsOwnedRunning && !_miner.IsRunning);
+        StopNodeCommand = new(StopNodeAsync, () => IsSoloMode && _node.IsOwnedRunning && !_miner.IsRunning);
         ApplyPowerCommand = new(ApplyPowerAsync, () => SelectedPowerGpu?.IsSelected == true);
         RefreshCommand = new(DetectAsync, () => !_miner.IsRunning);
         ResumeLogCommand = new(() => { ResumeLog(); return Task.CompletedTask; });
@@ -140,8 +164,10 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _settings.Gpus ??= new Dictionary<string, GpuPreference>(StringComparer.OrdinalIgnoreCase);
         _settings.Gpus = new Dictionary<string, GpuPreference>(_settings.Gpus, StringComparer.OrdinalIgnoreCase);
         Wallet = _settings.Wallet;
+        PoolAddress = _settings.PoolAddress ?? "";
         NodeAddress = string.IsNullOrWhiteSpace(_settings.NodeAddress) ? "127.0.0.1" : _settings.NodeAddress;
         NodePort = _settings.NodePort is > 0 and <= 65535 ? _settings.NodePort : 22110;
+        SelectedMiningMode = MiningModeOptions.FirstOrDefault(x => x.Id.Equals(_settings.MiningMode, StringComparison.OrdinalIgnoreCase)) ?? MiningModeOptions[0];
         SetLanguage(_settings.Language);
         await LoadConfigAsync();
         await DetectAsync();
@@ -181,7 +207,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     [
         new() { Id = "auto", NameFr = "Auto", NameEn = "Auto" },
         new() { Id = "very-light", NameFr = "Très léger — 8 Go+", NameEn = "Very Light — 8 GB+", Model = "Qwen3.5-9B-abliterated Q5_K_M", MinVramGb = 8, Argument = "--very-light", ForceName = "very-light" },
-        new() { Id = "light", NameFr = "Léger — 12 Go+", NameEn = "Light — 12 GB+", Model = "GLM-4-9B Q6_K", MinVramGb = 12, Argument = "--light", ForceName = "light" },
+        new() { Id = "light", NameFr = "Léger — 12 Go+", NameEn = "Light — 12 GB+", Model = "GLM-4-9B-0414 Q6_K", MinVramGb = 12, Argument = "--light", ForceName = "light" },
         new() { Id = "default", NameFr = "Standard — 16 Go+", NameEn = "Standard — 16 GB+", Model = "Gemma-4-12B-abliterated Q6_K", MinVramGb = 16, ForceName = "default" },
         new() { Id = "high", NameFr = "Élevé — 24 Go+", NameEn = "High — 24 GB+", Model = "Qwen3.6-27B Q4_K_M", MinVramGb = 24, Argument = "--high", ForceName = "high" },
         new() { Id = "very-high", NameFr = "Très élevé — 32 Go+", NameEn = "Very High — 32 GB+", Model = "Kimi-Linear-48B Q4_K_M", MinVramGb = 32, Argument = "--very-high", ForceName = "very-high" }
@@ -208,9 +234,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 Gpus.Add(gpu);
             }
             SelectedPowerGpu = Gpus.FirstOrDefault(x => x.Uuid == selectedPowerUuid) ?? Gpus.FirstOrDefault(x => x.IsSelected) ?? Gpus.FirstOrDefault();
-            var nodeOnline = await IsNodeReachableAsync(NodeAddress, NodePort, _lifetime.Token);
+            var nodeOnline = IsSoloMode && await IsNodeReachableAsync(NodeAddress, NodePort, _lifetime.Token);
             SetStatus(Gpus.Count == 0 ? "StatusNoGpu" : nodeOnline ? "StatusNodeOnline" : "StatusReady");
-            if (!nodeOnline) { NodeSyncKnown = false; NodeSyncPercent = null; }
+            if (!nodeOnline && IsSoloMode) { NodeSyncKnown = false; NodeSyncPercent = null; }
         }
         catch (Exception ex)
         {
@@ -233,6 +259,10 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private bool CanStartMiner()
     {
+        if (IsPoolMode)
+            return !_miner.IsRunning && Gpus.Any(x => x.IsSelected) && !string.IsNullOrWhiteSpace(Wallet)
+                && TryParsePoolEndpoint(PoolAddress, out _, out _);
+
         var synchronizationReady = NodeSyncKnown ? NodeSyncPercent is >= 100 : !_node.IsOwnedRunning;
         return !_miner.IsRunning && Gpus.Any(x => x.IsSelected) && !string.IsNullOrWhiteSpace(Wallet)
             && !string.IsNullOrWhiteSpace(NodeAddress) && synchronizationReady;
@@ -250,28 +280,45 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 AddApplicationLog(T("LogInvalidWallet"), LogSeverity.Warning);
                 return;
             }
-            if ((_node.IsOwnedRunning && !NodeSyncKnown) || NodeSyncKnown && NodeSyncPercent is not >= 100)
+            MinerConnection connection;
+            if (IsPoolMode)
             {
-                SetStatus("StatusNodeSyncRequired");
-                AddApplicationLog(T("LogNodeSyncRequired"), LogSeverity.Warning);
-                return;
+                if (!TryParsePoolEndpoint(PoolAddress, out var poolHost, out var poolPort))
+                {
+                    SetStatus("StatusStartFailed");
+                    AddApplicationLog(T("LogInvalidPool"), LogSeverity.Warning);
+                    return;
+                }
+                connection = MinerConnection.Pool(PoolAddress.Trim());
+                if (!await IsNodeReachableAsync(poolHost, poolPort, _lifetime.Token))
+                    AddApplicationLog(T("LogPoolNotReachable"), LogSeverity.Warning);
             }
-            if (!await IsNodeReachableAsync(NodeAddress.Trim(), NodePort, _lifetime.Token))
+            else
             {
-                SetStatus("StatusNodeUnavailable");
-                AddApplicationLog(string.Format(T("LogNodeMissing"), NodeAddress, NodePort), LogSeverity.Warning);
-                return;
-            }
-            try
-            {
-                var preparation = await _ipfs.PrepareAsync(_config.Miner, _lifetime.Token);
-                if (preparation.GatewayChanged) AddApplicationLog(string.Format(T("LogIpfsPortChanged"), preparation.OldGatewayPort, preparation.NewGatewayPort));
-            }
-            catch (Exception ex)
-            {
-                SetStatus("StatusIpfsError");
-                AddApplicationLog($"IPFS: {ex.Message}", LogSeverity.Error, "ipfs");
-                return;
+                if ((_node.IsOwnedRunning && !NodeSyncKnown) || NodeSyncKnown && NodeSyncPercent is not >= 100)
+                {
+                    SetStatus("StatusNodeSyncRequired");
+                    AddApplicationLog(T("LogNodeSyncRequired"), LogSeverity.Warning);
+                    return;
+                }
+                if (!await IsNodeReachableAsync(NodeAddress.Trim(), NodePort, _lifetime.Token))
+                {
+                    SetStatus("StatusNodeUnavailable");
+                    AddApplicationLog(string.Format(T("LogNodeMissing"), NodeAddress, NodePort), LogSeverity.Warning);
+                    return;
+                }
+                try
+                {
+                    var preparation = await _ipfs.PrepareAsync(_config.Miner, _lifetime.Token);
+                    if (preparation.GatewayChanged) AddApplicationLog(string.Format(T("LogIpfsPortChanged"), preparation.OldGatewayPort, preparation.NewGatewayPort));
+                }
+                catch (Exception ex)
+                {
+                    SetStatus("StatusIpfsError");
+                    AddApplicationLog($"IPFS: {ex.Message}", LogSeverity.Error, "ipfs");
+                    return;
+                }
+                connection = MinerConnection.Solo(NodeAddress.Trim(), NodePort);
             }
             var originalStatsPort = _config.Miner.StatsPort;
             _config.Miner.StatsPort = FindAvailableStatsPort(originalStatsPort);
@@ -285,12 +332,15 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 var tier = gpu.SelectedTier ?? TierOptions.First();
                 var automatic = GetAutomaticTier(gpu.Info);
-                return new GpuLaunchSelection(gpu.Index, gpu.IsSelected, tier.IsAuto, tier.Config.ForceName, automatic.ForceName);
+                return new GpuLaunchSelection(gpu.Index, gpu.Uuid, gpu.IsSelected, tier.IsAuto, tier.Config.ForceName, automatic.ForceName);
             }).ToArray();
+            _minerGpuIndexMap.Clear();
+            foreach (var entry in launch.Where(x => x.IsSelected).OrderBy(x => x.Index).Select((gpu, logicalIndex) => (gpu.Index, logicalIndex)))
+                _minerGpuIndexMap[entry.logicalIndex] = entry.Index;
             _minerStopRequested = false;
-            await _miner.StartAsync(_config.Miner, Wallet.Trim(), NodeAddress.Trim(), NodePort, launch, Gpus.Count, _lifetime.Token);
+            await _miner.StartAsync(_config.Miner, Wallet.Trim(), connection, launch, _lifetime.Token);
             SetStatus("StatusMiningStarting");
-            AddApplicationLog(T("LogMinerStarted"));
+            AddApplicationLog(T(IsPoolMode ? "LogPoolMinerStarted" : "LogMinerStarted"));
         }
         catch (Exception ex)
         {
@@ -318,6 +368,18 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             return true;
         }
         catch { return false; }
+    }
+
+    internal static bool TryParsePoolEndpoint(string? value, out string host, out int port)
+    {
+        host = ""; port = 0;
+        if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri)
+            || !uri.Scheme.Equals("stratum+tcp", StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(uri.Host)
+            || uri.Port is <= 0 or > 65535)
+            return false;
+        host = uri.Host; port = uri.Port;
+        return true;
     }
 
     private static int FindAvailableStatsPort(int preferredPort)
@@ -461,14 +523,26 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (api is not null)
         {
             Hashrate = $"{api.TotalHashrateHs / 1_000_000d:0.00} MH/s";
-            Accepted = api.AcceptedBlocks; Rejected = api.RejectedBlocks;
+            Accepted = IsPoolMode ? _fallbackStats.Accepted : api.AcceptedBlocks;
+            Rejected = IsPoolMode ? _fallbackStats.Rejected : api.RejectedBlocks;
             Uptime = FormatUptime(api.UptimeSeconds);
-            NodeSyncKnown = true;
-            NodeSyncPercent = api.Synced ? 100 : NodeSyncPercent is < 100 ? NodeSyncPercent : null;
+            if (IsSoloMode)
+            {
+                NodeSyncKnown = true;
+                NodeSyncPercent = api.Synced ? 100 : NodeSyncPercent is < 100 ? NodeSyncPercent : null;
+            }
+            ServiceStatusText = api.OpoiChallengeActive
+                ? T("OpoiInferenceActive")
+                : string.IsNullOrWhiteSpace(api.ServiceStatus) || api.ServiceStatus.Equals("clear", StringComparison.OrdinalIgnoreCase)
+                    ? ""
+                    : string.Format(T("ServiceStanding"), api.ServiceStatus);
             foreach (var device in api.Devices)
             {
-                var match = Regex.Match(device.Id, @"#(\d+)");
-                if (match.Success && int.TryParse(match.Groups[1].Value, out var index)) Gpus.FirstOrDefault(x => x.Index == index)?.ApplyMinerStats(device);
+                if (TryParseMinerDeviceIndex(device.Id, out var logicalIndex))
+                {
+                    var physicalIndex = _minerGpuIndexMap.GetValueOrDefault(logicalIndex, logicalIndex);
+                    Gpus.FirstOrDefault(x => x.Index == physicalIndex)?.ApplyMinerStats(device);
+                }
             }
             if (_miner.IsRunning && api.Synced) { _blockingErrorActive = false; SetStatus("StatusMining"); }
         }
@@ -534,7 +608,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         {
             if (!isMiner && line == _lastNodeLine && DateTime.UtcNow - _lastNodeLineAt < TimeSpan.FromSeconds(1)) return;
             if (!isMiner) { _lastNodeLine = line; _lastNodeLineAt = DateTime.UtcNow; }
-            if (isMiner && line == _lastMinerLine && DateTime.UtcNow - _lastMinerLineAt < TimeSpan.FromSeconds(1)) return;
+            if (isMiner && !IsPoolShareLine(line) && line == _lastMinerLine && DateTime.UtcNow - _lastMinerLineAt < TimeSpan.FromSeconds(1)) return;
             if (isMiner) { _lastMinerLine = line; _lastMinerLineAt = DateTime.UtcNow; }
             if (_pendingLogs.Count >= 2_000) { _pendingLogs.Dequeue(); _droppedLogCount++; }
             _pendingLogs.Enqueue((line, isMiner));
@@ -565,18 +639,26 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void AddLogCore(string line, bool isMiner)
     {
-        CaptureEscrowKey(line);
+        if (IsSoloMode) CaptureEscrowKey(line);
         var syncProgressChanged = !isMiner && ParseNodeProgress(line);
         var modelProgressChanged = false;
+        var poolStatsChanged = false;
         if (isMiner)
         {
+            var previous = _fallbackStats;
             _fallbackStats = _logParser.Parse(line, _fallbackStats);
+            poolStatsChanged = previous.Accepted != _fallbackStats.Accepted || previous.Rejected != _fallbackStats.Rejected;
+            if (IsPoolMode && poolStatsChanged)
+            {
+                Accepted = _fallbackStats.Accepted;
+                Rejected = _fallbackStats.Rejected;
+            }
             if (_miner.IsRunning && _fallbackStats.HashrateMh > 0 && Hashrate == "0.00 MH/s") Hashrate = $"{_fallbackStats.HashrateMh:0.00} MH/s";
             modelProgressChanged = ParseModelProgress(line);
         }
-        var blocker = DetectBlocker(line);
+        var blocker = IsSoloMode ? DetectBlocker(line) : null;
         var severity = blocker is not null ? LogSeverity.Error : IsNonBlockingProblem(line) ? LogSeverity.Warning : LogSeverity.Info;
-        if (ShouldSuppressRoutineLine(line, isMiner, severity, syncProgressChanged, modelProgressChanged)) return;
+        if (ShouldSuppressRoutineLine(line, isMiner, severity, syncProgressChanged, modelProgressChanged, poolStatsChanged)) return;
         AddLogEntry(line, severity, blocker);
     }
 
@@ -596,18 +678,31 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private static bool IsNonBlockingProblem(string line) => Regex.IsMatch(line, @"(?i)(?:\[WARN\]|\bWARN\b|\bWARNING\b|\[ERROR\]|\bERROR\b|cannot start)");
 
-    private static bool ShouldSuppressRoutineLine(string line, bool isMiner, LogSeverity severity, bool syncProgressChanged, bool modelProgressChanged)
+    private static bool ShouldSuppressRoutineLine(string line, bool isMiner, LogSeverity severity, bool syncProgressChanged, bool modelProgressChanged, bool poolStatsChanged)
     {
         if (severity != LogSeverity.Info) return false;
         if (isMiner)
         {
             if (Regex.IsMatch(line, @"(?i)\b(?:Current hashrate is|Device #\d+ .*?hash(?:rate)?)\b")) return true;
             if (Regex.IsMatch(line, @"(?i)\d+(?:[.,]\d+)?/\d+(?:[.,]\d+)?\s*(?:MB|GB)\s*\(\d{1,3}%\)")) return !modelProgressChanged;
+            if (line.Contains("Shares:", StringComparison.OrdinalIgnoreCase) && line.Contains("Pending:", StringComparison.OrdinalIgnoreCase)) return !poolStatsChanged;
             return false;
         }
         if (line.Contains("IBD:", StringComparison.OrdinalIgnoreCase)) return !syncProgressChanged;
         return Regex.IsMatch(line, @"(?i)\b(?:Accepted \d+ blocks?|Orphaned \d+ blocks?|Unorphaned (?:\d+ )?blocks?|Processed \d+ blocks?|Received \d+ UTXO set chunks so far|Virtual-index cache|Tx throughput stats|P2P health|Connection manager|Registering p2p flows|P2P Connected|Querying DNS seeder|Retrieved \d+ addresses)\b");
     }
+
+    private static bool TryParseMinerDeviceIndex(string? deviceId, out int index)
+    {
+        index = -1;
+        if (string.IsNullOrWhiteSpace(deviceId)) return false;
+        // Current releases use values such as "#0 NVIDIA ...". Accept the
+        // compact "GPU0" spelling as well because it appears in upstream
+        // tests and keeps the frontend tolerant of future stats formatting.
+        var match = Regex.Match(deviceId, @"(?i)(?:^#\s*|^GPU\s*)(\d+)\b");
+        return match.Success && int.TryParse(match.Groups[1].Value, out index);
+    }
+    private static bool IsPoolShareLine(string line) => Regex.IsMatch(line, @"(?i)\b(?:Share accepted|Share rejected by pool|Stale share|Duplicate share|Low difficulty share|Shares:)\b");
     private static string? DetectBlocker(string line)
     {
         if (line.Contains("Cert does not match this payout address and escrow key", StringComparison.OrdinalIgnoreCase)
@@ -695,14 +790,19 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (current is not null) dictionaries.Remove(current);
         dictionaries.Add(new ResourceDictionary { Source = new Uri($"Resources/Strings.{normalized}.xaml", UriKind.Relative) });
         foreach (var tier in TierOptions) tier.SetLanguage(normalized);
+        foreach (var mode in MiningModeOptions) mode.SetLanguage(normalized);
         foreach (var gpu in Gpus) gpu.SetLanguage(normalized);
         Status = T(_statusKey); RefreshNodeSyncText(); Raise(nameof(LogPauseText));
+        // The monitoring loop will rebuild this localized status on its next tick.
+        if (!string.IsNullOrWhiteSpace(ServiceStatusText)) ServiceStatusText = "";
         if (string.IsNullOrWhiteSpace(EscrowStatus)) EscrowStatus = T("EscrowWaiting");
     }
 
     private void RefreshNodeSyncText()
     {
-        NodeSyncText = !NodeSyncKnown ? T("NodeSyncUnknown") : NodeSyncPercent is null ? T("NodeNotSynchronized") : NodeSyncPercent is >= 100 ? T("NodeSynchronized") : string.Format(T("NodeSynchronizingPercent"), NodeSyncPercent);
+        NodeSyncText = IsPoolMode
+            ? T("PoolNoLocalServices")
+            : !NodeSyncKnown ? T("NodeSyncUnknown") : NodeSyncPercent is null ? T("NodeNotSynchronized") : NodeSyncPercent is >= 100 ? T("NodeSynchronized") : string.Format(T("NodeSynchronizingPercent"), NodeSyncPercent);
     }
 
     private static string T(string key) => Application.Current.TryFindResource(key) as string ?? key;
@@ -730,6 +830,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         Hashrate = "0.00 MH/s";
         Uptime = "—";
+        ServiceStatusText = "";
         foreach (var gpu in Gpus) gpu.ResetMinerStats(false);
         if (!_blockingErrorActive) { SetStatus(code == 0 ? "StatusStopped" : "StatusStartFailed"); Status = $"{Status} (code {code})"; }
         if (!_minerStopRequested) _ = RestorePowerAfterUnexpectedExitAsync();
@@ -753,7 +854,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     }
     private void RaiseProcessState()
     {
-        Raise(nameof(IsMinerRunning)); Raise(nameof(IsNodeRunning)); Raise(nameof(HasActiveProcesses)); Raise(nameof(ConfigurationEnabled)); RefreshCommands();
+        Raise(nameof(IsMinerRunning)); Raise(nameof(IsNodeRunning)); Raise(nameof(HasActiveProcesses)); Raise(nameof(ConfigurationEnabled)); Raise(nameof(ConnectionConfigurationEnabled)); Raise(nameof(NodeControlsEnabled)); RefreshCommands();
     }
     private void RefreshCommands()
     {
@@ -762,7 +863,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void ResetExternalNodeSyncState()
     {
-        if (_miner.IsRunning || _node.IsOwnedRunning) return;
+        if (IsPoolMode || _miner.IsRunning || _node.IsOwnedRunning) return;
         NodeSyncKnown = false;
         NodeSyncPercent = null;
         _lastDisplayedSyncPercent = -1;
@@ -777,7 +878,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task SaveSettingsAsync()
     {
-        _settings.Language = Language; _settings.Wallet = Wallet; _settings.NodeAddress = NodeAddress; _settings.NodePort = NodePort;
+        _settings.Language = Language; _settings.Wallet = Wallet; _settings.MiningMode = IsPoolMode ? "pool" : "solo";
+        _settings.NodeAddress = NodeAddress; _settings.NodePort = NodePort; _settings.PoolAddress = PoolAddress;
         _settings.Gpus = Gpus.ToDictionary(x => x.Uuid, x => new GpuPreference { Selected = x.IsSelected, TierId = x.SelectedTier?.Id ?? "auto", PowerLimit = x.PowerLimit }, StringComparer.OrdinalIgnoreCase);
         await _settingsService.SaveAsync(_settings, CancellationToken.None);
     }
