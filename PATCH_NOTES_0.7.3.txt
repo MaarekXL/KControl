@@ -1,6 +1,6 @@
 KERYX CONTROL MANAGER v0.7.3 - PATCH NOTES
 ============================================================
-Target: Keryx Miner v0.5.4-PoM / keryxd v1.5.8-PoM / Windows x64
+Target: Keryx Miner v0.5.4-PoM / keryxd v1.6.0-PoM / Windows x64
 
 ENGLISH
 -------
@@ -12,8 +12,8 @@ PoM features included since v0.7.2:
 - Per-GPU power limits, bilingual UI and bounded colored live log.
 
 v0.7.3 fixes:
-- Intermediate IBD 100% phases stay at 99%. Completion requires the last phase,
-  live blocks and 30 seconds without a new IBD phase.
+- Intermediate IBD 100% phases stay at 99%. After the final completion message,
+  START shows a 30-second stability countdown; a new IBD phase resets it.
 - Solo counts confirmed miner submissions, not candidates or relayed node blocks.
   Pool counts only explicit accepted/rejected Stratum results.
 - Repairs only miner/.ipfs/blocks/.temp while Kubo is stopped.
@@ -35,8 +35,8 @@ Fonctions PoM incluses depuis la v0.7.2 :
 - Autorisation escrow intégrée, puissance par GPU, interface FR/EN et journal.
 
 Correctifs v0.7.3 :
-- Les 100 % IBD intermédiaires restent à 99 %. La fin exige la dernière phase,
-  des blocs en direct et 30 secondes sans nouvelle phase IBD.
+- Les 100 % IBD intermédiaires restent à 99 %. Après le message final, DÉMARRER
+  affiche un compte à rebours de stabilité de 30 secondes, réinitialisé par IBD.
 - En solo, seuls les envois confirmés sont comptés ; en pool, seules les réponses
   Stratum explicites. Les candidats et blocs réseau sont ignorés.
 - Réparation limitée à miner/.ipfs/blocks/.temp lorsque Kubo est arrêté.
@@ -52,4 +52,3 @@ ADMINISTRATOR NOTE
 Power-limit changes use nvidia-smi. Depending on Windows and the NVIDIA driver,
 run Keryx Control as administrator. Mining and monitoring normally do not need
 elevation.
-

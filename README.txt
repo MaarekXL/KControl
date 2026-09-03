@@ -2,7 +2,7 @@ KERYX CONTROL MANAGER v0.7.3
 ============================
 
 Community-built Windows x64 interface for Keryx Miner v0.5.4-PoM,
-keryxd v1.5.8-PoM and NVIDIA GPUs. Independent community project;
+keryxd v1.6.0-PoM and NVIDIA GPUs. Independent community project;
 not an official Keryx Labs product.
 
 Project: https://github.com/MaarekXL/KControl
@@ -12,7 +12,8 @@ REQUIREMENTS
 - Windows 10/11 x64.
 - NVIDIA driver and a GPU supported by the official Keryx CUDA miner.
 - Official Keryx Miner v0.5.4-PoM files in the "miner" folder.
-- For solo mode: keryxd.exe v1.5.8-PoM in the "keryxd" folder.
+- For solo mode: keryxd.exe v1.6.0-PoM in the "keryxd" folder.
+  This mandatory H12 upgrade is installed in place; keep KeryxData.
 - Administrator rights only when required to change an NVIDIA power limit.
 - The supplied build is self-contained; no separate .NET installation is needed.
 
@@ -53,7 +54,9 @@ MAIN FEATURES
 V0.7.3 FIXES
 ------------
 - Intermediate IBD 100% lines no longer falsely mark the node synchronized.
-  Completion requires the final IBD phase, live blocks and 30 stable seconds.
+  After the final completion message, START displays a 30-second stability
+  countdown. A new IBD phase resets it. A live block starts the same check for
+  a node that was already synchronized before Keryx Control was opened.
 - Solo counters count successful miner submissions, not "Found a block" or
   blocks relayed by the node. Pool counters use explicit Stratum share results.
 - Repairs only the exact stale miner/.ipfs/blocks/.temp path before solo mining
@@ -137,7 +140,7 @@ LIMITS AND PRIVACY
 - Windows x64 only; no native Linux or Wine support in v0.7.3.
 - Memory-junction temperature appears only when exposed by the miner API or the
   available NVIDIA interface. LibreHardwareMonitor may use another sensor path.
-- Synchronization is conservatively derived from keryxd v1.5.8-PoM logs.
+- Synchronization is conservatively derived from keryxd v1.6.0-PoM logs.
 - The application contains no remote-control web server and sends no telemetry
   to the project author. Settings stay under %LOCALAPPDATA%\KeryxControl and
   node data stays in KeryxData.

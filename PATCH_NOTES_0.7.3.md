@@ -1,7 +1,7 @@
 # Keryx Control Manager v0.7.3 — Patch Notes
 
 Release type: stability and compatibility update  
-Target: Keryx Miner v0.5.4-PoM / keryxd v1.5.8-PoM / Windows x64
+Target: Keryx Miner v0.5.4-PoM / keryxd v1.6.0-PoM / Windows x64
 
 ## English
 
@@ -16,7 +16,7 @@ Target: Keryx Miner v0.5.4-PoM / keryxd v1.5.8-PoM / Windows x64
 
 ### v0.7.3 fixes
 
-- **Synchronization:** intermediate IBD phases reaching 100% are held at 99%. The UI declares completion only after keryxd completes the last phase, receives live blocks and remains outside IBD for 30 seconds.
+- **Synchronization:** intermediate IBD phases reaching 100% are held at 99%. After the final completion message, **Start** displays a 30-second stability countdown; a new IBD phase resets it. A live relay block starts the same validation for a node already synchronized before the application opened.
 - **Counters:** solo candidates and network relay blocks are no longer counted. Solo increments only on a confirmed miner submission (or authoritative miner API data); pool counters use explicit Stratum results.
 - **IPFS recovery:** safely removes only `miner/.ipfs/blocks/.temp` when Kubo is stopped. The repair runs before solo startup and after the matching startup failure.
 - **IPFS ownership:** detects an already-running Kubo daemon and leaves it running on miner/application shutdown.
@@ -40,7 +40,7 @@ Target: Keryx Miner v0.5.4-PoM / keryxd v1.5.8-PoM / Windows x64
 
 ### Correctifs v0.7.3
 
-- **Synchronisation :** un 100 % intermédiaire d’IBD reste affiché à 99 %. La fin est validée après la dernière phase, la réception de blocs en direct et 30 secondes sans nouvelle phase IBD.
+- **Synchronisation :** un 100 % intermédiaire d’IBD reste affiché à 99 %. Après le message final, **Démarrer** affiche un compte à rebours de stabilité de 30 secondes ; une nouvelle phase IBD le réinitialise. Un bloc relayé lance la même validation si le nœud était déjà synchronisé avant l’ouverture de l’application.
 - **Compteurs :** les candidats `Found a block` et les blocs relayés par le réseau ne sont plus comptés. En solo, seul un envoi confirmé par le mineur — ou son API — compte ; en pool, seules les réponses Stratum explicites comptent.
 - **Récupération IPFS :** suppression limitée au chemin exact `miner/.ipfs/blocks/.temp`, uniquement quand Kubo est arrêté, avant le lancement solo ou après l’erreur correspondante.
 - **Propriété IPFS :** un Kubo déjà lancé avant Keryx Control est détecté et n’est pas arrêté par l’application.
@@ -54,4 +54,3 @@ Target: Keryx Miner v0.5.4-PoM / keryxd v1.5.8-PoM / Windows x64
 ### Note administrateur
 
 Le réglage du power limit utilise `nvidia-smi`. Selon Windows et le pilote NVIDIA, Keryx Control doit être lancé avec **Exécuter en tant qu’administrateur**. Le minage et le monitoring n’exigent pas cette élévation si le pilote les autorise normalement.
-

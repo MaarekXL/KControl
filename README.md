@@ -5,7 +5,7 @@ Community-built Windows x64 interface for Keryx mining with NVIDIA GPUs. Keryx C
 v0.7.3 targets:
 
 - **Keryx Miner v0.5.4-PoM**
-- **keryxd v1.5.8-PoM**
+- **keryxd v1.6.0-PoM**
 - Windows 10/11 x64
 - NVIDIA RTX 4000/5000 and other CUDA GPUs supported by the official miner
 
@@ -29,7 +29,7 @@ Project: <https://github.com/MaarekXL/KControl>
 
 ## What is fixed in v0.7.3
 
-- Node synchronization no longer treats an intermediate `IBD ... (100%)` line as final. keryxd v1.5.8-PoM can run several IBD phases; Keryx Control waits for a completed phase, live blocks and a 30-second stable period without a new IBD phase.
+- Node synchronization no longer treats an intermediate `IBD ... (100%)` line as final. keryxd can run several IBD phases; after the final completion message, Keryx Control shows a 30-second stability countdown on the **Start** button. Mining is enabled when no new IBD phase begins during that interval. A live relay block can start the same check when the node was already synchronized before Keryx Control was opened.
 - Solo counters ignore `Found a block` and relayed node blocks. A block is counted only after the miner reports a successful submission, or from the miner statistics API.
 - Pool counters use explicit accepted/stale/low-difficulty/duplicate share messages.
 - The stale `miner/.ipfs/blocks/.temp` directory is repaired before a solo launch and after a matching IPFS startup failure. Models and permanent block data are never removed.
@@ -82,7 +82,7 @@ KeryxData/
 
 1. Extract the Keryx Control Windows x64 archive.
 2. Copy Keryx Miner v0.5.4-PoM and all its official companion files into `miner`.
-3. For solo mode, copy `keryxd.exe` v1.5.8-PoM into `keryxd`.
+3. For solo mode, copy `keryxd.exe` v1.6.0-PoM into `keryxd`. This mandatory H12 node upgrade is installed in place; keep the existing `KeryxData` directory.
 4. Launch `KeryxControl.exe`.
 5. Run as administrator only when Windows requires elevation to change an NVIDIA power limit.
 
@@ -198,6 +198,6 @@ No third-party NuGet package is required by Keryx Control.
 ## Known limits
 
 - Windows x64 only. Native Linux support and Wine are not part of v0.7.3.
-- Node synchronization is derived from keryxd v1.5.8-PoM logs because no stable node status API is bundled with this frontend.
+- Node synchronization is derived from keryxd v1.6.0-PoM logs because no stable node status API is bundled with this frontend.
 - Miner statistics depend on the local `/stats` endpoint and its current schema; the log parser supplies a conservative fallback.
 - Keryx Control cannot guarantee support for GPU architectures unsupported by the official CUDA miner build.
