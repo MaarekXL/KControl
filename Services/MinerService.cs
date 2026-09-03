@@ -9,6 +9,7 @@ public sealed class MinerService : IAsyncDisposable
 {
     private Process? _process;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private long _generation;
     public bool IsRunning => _process is { HasExited: false };
     public event Action<string>? LineReceived;
     public event Action<int>? Exited;
@@ -30,17 +31,37 @@ public sealed class MinerService : IAsyncDisposable
             if (!File.Exists(executable)) throw new FileNotFoundException("Binaire du mineur introuvable.", executable);
             if (gpus.Count == 0) throw new InvalidOperationException("No GPU was selected.");
             var arguments = BuildArguments(config, wallet, connection, gpus);
-            var psi = new ProcessStartInfo(executable) { WorkingDirectory = Path.GetDirectoryName(executable)!, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8, CreateNoWindow = true };
+            var psi = new ProcessStartInfo(executable)
+            {
+                WorkingDirectory = Path.GetDirectoryName(executable)!,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
+                CreateNoWindow = false,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
             foreach (var arg in arguments) psi.ArgumentList.Add(arg);
             ConfigureGpuEnvironment(psi, gpus);
             if (!connection.IsPool)
                 psi.Environment["IPFS_PATH"] = Path.Combine(psi.WorkingDirectory, ".ipfs");
+            var generation = ++_generation;
             var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            p.OutputDataReceived += OnOutput;
-            p.ErrorDataReceived += OnOutput;
-            p.Exited += OnExited;
-            if (!p.Start()) { p.Dispose(); throw new InvalidOperationException("Le mineur n'a pas pu démarrer."); }
+            p.OutputDataReceived += (_, e) => OnOutput(p, generation, e.Data);
+            p.ErrorDataReceived += (_, e) => OnOutput(p, generation, e.Data);
+            p.Exited += (_, _) => OnExited(p, generation);
             _process = p;
+            try
+            {
+                if (!p.Start()) throw new InvalidOperationException("Le mineur n'a pas pu démarrer.");
+            }
+            catch
+            {
+                if (ReferenceEquals(_process, p)) _process = null;
+                p.Dispose();
+                throw;
+            }
             p.BeginOutputReadLine(); p.BeginErrorReadLine();
         }
         finally { _gate.Release(); }
@@ -53,22 +74,26 @@ public sealed class MinerService : IAsyncDisposable
         {
             var p = _process;
             if (p is null || p.HasExited) return;
-            try
+            if (!await GracefulProcessStopper.TryStopAsync(p, TimeSpan.FromSeconds(Math.Max(1, timeoutSeconds)), ct) && !p.HasExited)
             {
-                if (p.CloseMainWindow())
-                {
-                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(1, timeoutSeconds)));
-                    await p.WaitForExitAsync(timeout.Token);
-                }
+                p.Kill(true);
+                await p.WaitForExitAsync(ct);
             }
-            catch (OperationCanceledException) { }
-            if (!p.HasExited) { p.Kill(true); await p.WaitForExitAsync(ct); }
         }
         finally { _gate.Release(); }
     }
 
-    private void OnOutput(object sender, DataReceivedEventArgs e) { if (!string.IsNullOrWhiteSpace(e.Data)) LineReceived?.Invoke(e.Data); }
-    private void OnExited(object? sender, EventArgs e) { if (sender is Process p) Exited?.Invoke(p.ExitCode); }
+    private void OnOutput(Process process, long generation, string? line)
+    {
+        if (!ReferenceEquals(_process, process) || generation != _generation || string.IsNullOrWhiteSpace(line)) return;
+        LineReceived?.Invoke(line);
+    }
+
+    private void OnExited(Process process, long generation)
+    {
+        if (!ReferenceEquals(_process, process) || generation != _generation) return;
+        Exited?.Invoke(process.ExitCode);
+    }
     internal static IReadOnlyList<string> BuildArguments(
         MinerConfig config,
         string wallet,

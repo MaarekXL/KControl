@@ -1,0 +1,55 @@
+KERYX CONTROL MANAGER v0.7.3 - PATCH NOTES
+============================================================
+Target: Keryx Miner v0.5.4-PoM / keryxd v1.5.8-PoM / Windows x64
+
+ENGLISH
+-------
+PoM features included since v0.7.2:
+- Solo keryxd and Keryx Stratum v3 pool modes.
+- Multi-GPU selection with stable UUID ordering and per-GPU models.
+- PoM stats, OPoI/service status and optional memory-junction temperature.
+- Integrated escrow public-key / wallet-certificate workflow.
+- Per-GPU power limits, bilingual UI and bounded colored live log.
+
+v0.7.3 fixes:
+- Intermediate IBD 100% phases stay at 99%. Completion requires the last phase,
+  live blocks and 30 seconds without a new IBD phase.
+- Solo counts confirmed miner submissions, not candidates or relayed node blocks.
+  Pool counts only explicit accepted/rejected Stratum results.
+- Repairs only miner/.ipfs/blocks/.temp while Kubo is stopped.
+- Detects and preserves a Kubo daemon that was already running.
+- Sends Ctrl+C before force-stopping the managed miner or node.
+- Handles immediate exits and ignores stale process events.
+- Scrolling up pauses display updates while retaining queued lines.
+- Only certificate/IPFS blockers pause in red; warnings remain orange and noisy
+  relay warnings are summarized.
+- Restores power limits after stop, close or failure when still safe to do so.
+- Corrupt settings are backed up and replaced with defaults.
+
+FRANCAIS
+--------
+Fonctions PoM incluses depuis la v0.7.2 :
+- Modes solo keryxd et pool Keryx Stratum v3.
+- Multi-GPU, ordre stable par UUID et modèle par GPU.
+- Statistiques PoM, états OPoI/service et jonction mémoire optionnelle.
+- Autorisation escrow intégrée, puissance par GPU, interface FR/EN et journal.
+
+Correctifs v0.7.3 :
+- Les 100 % IBD intermédiaires restent à 99 %. La fin exige la dernière phase,
+  des blocs en direct et 30 secondes sans nouvelle phase IBD.
+- En solo, seuls les envois confirmés sont comptés ; en pool, seules les réponses
+  Stratum explicites. Les candidats et blocs réseau sont ignorés.
+- Réparation limitée à miner/.ipfs/blocks/.temp lorsque Kubo est arrêté.
+- Un Kubo déjà actif est préservé.
+- Ctrl+C avant tout arrêt forcé du mineur ou du nœud géré.
+- Correction des sorties immédiates et anciens événements de processus.
+- La molette suspend l’affichage sans perdre les nouveaux messages.
+- Seuls les blocages certificat/IPFS sont rouges et mettent en pause.
+- Restauration sûre des limites de puissance et secours pour réglages corrompus.
+
+ADMINISTRATOR NOTE
+------------------
+Power-limit changes use nvidia-smi. Depending on Windows and the NVIDIA driver,
+run Keryx Control as administrator. Mining and monitoring normally do not need
+elevation.
+

@@ -45,6 +45,8 @@
  <sys:String x:Key="EscrowInvalid" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificat invalide : 128 caractères hexadécimaux sont requis.</sys:String>
  <sys:String x:Key="EscrowSaved" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificat enregistré. Redémarrez le mineur.</sys:String>
  <sys:String x:Key="EscrowSavedLog" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificat enregistré dans miner/escrow.cert. Redémarrez le mineur.</sys:String>
+ <sys:String x:Key="EscrowSavedRestart" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificat enregistré. Arrêtez puis redémarrez le mineur pour l’appliquer.</sys:String>
+ <sys:String x:Key="EscrowSavedRestartLog" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificat enregistré dans miner/escrow.cert. Un redémarrage du mineur est nécessaire.</sys:String>
  <sys:String x:Key="Close" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">FERMER</sys:String>
 
  <sys:String x:Key="StatusInitializing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Initialisation…</sys:String>
@@ -81,19 +83,25 @@
  <sys:String x:Key="LogLinesSkipped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Journal saturé : {0} anciennes lignes ont été ignorées.</sys:String>
 
  <sys:String x:Key="ConfigurationInvalid" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Configuration invalide</sys:String>
+ <sys:String x:Key="SettingsLoadFailed" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Les paramètres enregistrés sont illisibles ; les valeurs par défaut ont été restaurées</sys:String>
  <sys:String x:Key="LogNodeMissing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Aucun nœud keryxd n’écoute sur {0}:{1}.</sys:String>
  <sys:String x:Key="LogInvalidPool" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Adresse de pool invalide. Format attendu : stratum+tcp://hôte:port.</sys:String>
  <sys:String x:Key="LogPoolNotReachable" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le pool ne répond pas au test de connexion. Le mineur va tout de même démarrer et gérer les reconnexions.</sys:String>
  <sys:String x:Key="LogInvalidWallet" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Adresse invalide : utilisez l’adresse complète commençant par keryx:.</sys:String>
  <sys:String x:Key="LogNodeSyncRequired" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le nœud doit terminer sa synchronisation avant le minage.</sys:String>
+ <sys:String x:Key="LogNodeLoopbackOnly" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Par sécurité, un nœud géré par Keryx Control doit écouter localement (127.0.0.1).</sys:String>
+ <sys:String x:Key="LogNodeAlreadyRunning" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Un service écoute déjà sur ce port. Keryx Control ne démarrera pas un second nœud.</sys:String>
  <sys:String x:Key="LogMinerStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Mineur démarré.</sys:String>
  <sys:String x:Key="LogPoolMinerStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Mineur démarré en mode pool Stratum v3.</sys:String>
  <sys:String x:Key="LogMinerStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Mineur arrêté.</sys:String>
  <sys:String x:Key="LogNodeStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Nœud keryxd démarré. La première synchronisation peut être longue.</sys:String>
  <sys:String x:Key="LogNodeStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Nœud keryxd arrêté.</sys:String>
  <sys:String x:Key="LogNodeExited" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le nœud keryxd s’est arrêté de manière inattendue (code {0}).</sys:String>
+ <sys:String x:Key="LogMinerStoppedNodeExit" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le mineur a été arrêté car le nœud géré s’est fermé.</sys:String>
  <sys:String x:Key="LogNodeMissingExe" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">keryxd.exe est introuvable dans le dossier keryxd.</sys:String>
  <sys:String x:Key="LogIpfsPortChanged" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">IPFS : le port {0} était occupé, la passerelle utilise maintenant le port {1}.</sys:String>
+ <sys:String x:Key="LogIpfsTempRemoved" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">IPFS : les données temporaires obsolètes de blocks/.temp ont été supprimées sans toucher aux modèles ni aux blocs.</sys:String>
+ <sys:String x:Key="LogRepeatedRelayWarning" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Avertissement réseau du nœud répété {0} fois durant le dernier intervalle.</sys:String>
  <sys:String x:Key="LogStatsPortChanged" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Statistiques : le port {0} était occupé, le mineur utilisera le port {1}.</sys:String>
  <sys:String x:Key="LogPowerApplied" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0} : power limit réglé à {1:0.#} W.</sys:String>
  <sys:String x:Key="LogPowerRestored" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0} : power limit restauré à {1:0.#} W.</sys:String>

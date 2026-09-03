@@ -13,6 +13,15 @@ public sealed class AsyncCommand(Func<Task> execute, Func<bool>? canExecute = nu
     private bool _busy;
     public bool CanExecute(object? parameter) => !_busy && (canExecute?.Invoke() ?? true);
     public event EventHandler? CanExecuteChanged;
-    public async void Execute(object? parameter) { if (!CanExecute(parameter)) return; _busy = true; Raise(); try { await execute(); } finally { _busy = false; Raise(); } }
+    public event Action<Exception>? Failed;
+    public async void Execute(object? parameter)
+    {
+        if (!CanExecute(parameter)) return;
+        _busy = true;
+        Raise();
+        try { await execute(); }
+        catch (Exception ex) { Failed?.Invoke(ex); }
+        finally { _busy = false; Raise(); }
+    }
     public void Raise() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }

@@ -109,7 +109,7 @@
      <Border Background="#0E1711" CornerRadius="14,14,0,0" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
       <Grid Margin="16,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{DynamicResource ActivityLog}" Style="{StaticResource Title}" Margin="0" VerticalAlignment="Center"/><Button Grid.Column="1" Content="{DynamicResource CopyLog}" Click="CopyLog_Click" Style="{StaticResource Secondary}" Padding="10,5" Margin="0,0,10,0"/><TextBlock Grid.Column="2" Text="{Binding LogPauseText}" Foreground="#FF8C92" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="{Binding IsLogPaused, Converter={StaticResource BoolVisibility}}"/><Button Grid.Column="3" Content="{DynamicResource ResumeLive}" Click="ResumeLog_Click" Style="{StaticResource Secondary}" Padding="10,5" Margin="0" Visibility="{Binding IsLogPaused, Converter={StaticResource BoolVisibility}}"/></Grid>
      </Border>
-     <ListBox x:Name="LogList" Grid.Row="1" ItemsSource="{Binding Logs}" Background="#060A07" BorderThickness="0" Padding="12,8" SelectionMode="Extended" PreviewMouseWheel="LogList_PreviewMouseWheel" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+     <ListBox x:Name="LogList" Grid.Row="1" ItemsSource="{Binding Logs}" Background="#060A07" BorderThickness="0" Padding="12,8" SelectionMode="Extended" PreviewMouseWheel="LogList_PreviewMouseWheel" ScrollViewer.ScrollChanged="LogList_ScrollChanged" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
       <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="Focusable" Value="False"/></Style></ListBox.ItemContainerStyle>
       <ListBox.ItemTemplate><DataTemplate><TextBox Text="{Binding DisplayText, Mode=OneWay}" Foreground="{Binding Foreground}" Style="{StaticResource LogLine}"/></DataTemplate></ListBox.ItemTemplate>
      </ListBox>
@@ -117,6 +117,6 @@
    </Border>
   </Grid>
 
-  <Border Grid.Row="2" Background="#070C08" BorderBrush="#122319" BorderThickness="0,1,0,0"><Grid Margin="23,0"><TextBlock Text="{DynamicResource CommunityFrontend}" Style="{StaticResource Caption}" VerticalAlignment="Center"/><TextBlock Text="v0.7.2  •  Keryx Miner 0.5.4-PoM  •  RTX 4000 / RTX 5000" HorizontalAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center"/></Grid></Border>
+  <Border Grid.Row="2" Background="#070C08" BorderBrush="#122319" BorderThickness="0,1,0,0"><Grid Margin="23,0"><TextBlock Text="{DynamicResource CommunityFrontend}" Style="{StaticResource Caption}" VerticalAlignment="Center"/><TextBlock Text="v0.7.3  •  Keryx Miner 0.5.4-PoM  •  keryxd 1.5.8-PoM" HorizontalAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center"/></Grid></Border>
  </Grid>
 </Window>

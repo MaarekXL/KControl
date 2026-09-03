@@ -22,18 +22,23 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly MinerLogParser _logParser = new();
     private readonly IpfsPreflightService _ipfs = new();
     private readonly SettingsService _settingsService = new();
+    private readonly NodeSyncTracker _nodeSyncTracker = new();
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _pendingLogGate = new();
     private readonly Queue<(string Line, bool IsMiner)> _pendingLogs = new();
+    private readonly Queue<LogEntry> _pausedLogEntries = new();
     private readonly Dictionary<string, PowerChange> _powerChanges = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, int> _minerGpuIndexMap = [];
     private readonly HashSet<string> _pausedBlockers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _activeBlockers = new(StringComparer.OrdinalIgnoreCase);
     private AppConfig _config = new();
     private UserSettings _settings = new();
-    private bool _logDrainScheduled, _logPaused, _logPausedForError, _blockingErrorActive, _shutdownStarted, _minerStopRequested, _nodeStopRequested;
+    private bool _logDrainScheduled, _logPaused, _logPausedForError, _shutdownStarted, _minerStopRequested, _nodeStopRequested, _nodeReachable, _shutdownManagedKubo;
     private int _droppedLogCount, _newLogCount, _lastDisplayedSyncPercent = -1, _lastDisplayedModelPercent = -1;
     private string _lastNodeLine = "", _lastMinerLine = "", _language = "fr", _wallet = "", _nodeAddress = "127.0.0.1", _poolAddress = "", _status = "", _statusKey = "StatusInitializing", _statusForeground = "#8BFFAE", _statusDot = "#22E66D";
     private DateTime _lastNodeLineAt = DateTime.MinValue, _lastMinerLineAt = DateTime.MinValue, _lastMonitoringError = DateTime.MinValue;
+    private DateTime _lastRelayWarningAt = DateTime.MinValue;
+    private int _relayWarningCount;
     private int _nodePort = 22110;
     private long _accepted, _rejected;
     private int? _nodeSyncPercent;
@@ -44,6 +49,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private GpuDeviceViewModel? _selectedPowerGpu;
     private MiningModeOptionViewModel? _selectedMiningMode;
     private string _escrowPublicKey = "", _escrowCertificate = "", _escrowStatus = "";
+    private int _escrowKeyLinesRemaining;
     private MinerStats _fallbackStats = new();
 
     public ObservableCollection<GpuDeviceViewModel> Gpus { get; } = [];
@@ -136,7 +142,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _selectedMiningMode = MiningModeOptions[0];
         StartCommand = new(StartAsync, CanStartMiner);
         StopCommand = new(StopAsync, () => _miner.IsRunning);
-        StartNodeCommand = new(StartNodeAsync, () => IsSoloMode && !_node.IsOwnedRunning && !_miner.IsRunning);
+        StartNodeCommand = new(StartNodeAsync, () => IsSoloMode && !_node.IsOwnedRunning && !_nodeReachable && !_miner.IsRunning);
         StopNodeCommand = new(StopNodeAsync, () => IsSoloMode && _node.IsOwnedRunning && !_miner.IsRunning);
         ApplyPowerCommand = new(ApplyPowerAsync, () => SelectedPowerGpu?.IsSelected == true);
         RefreshCommand = new(DetectAsync, () => !_miner.IsRunning);
@@ -144,17 +150,19 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         CopyEscrowKeyCommand = new(CopyEscrowKeyAsync, () => !string.IsNullOrWhiteSpace(EscrowPublicKey));
         PasteEscrowCertCommand = new(PasteEscrowCertificateAsync);
         SaveEscrowCertCommand = new(SaveEscrowCertificateAsync);
+        foreach (var command in new[] { StartCommand, StopCommand, StartNodeCommand, StopNodeCommand, ApplyPowerCommand, RefreshCommand, ResumeLogCommand, CopyEscrowKeyCommand, PasteEscrowCertCommand, SaveEscrowCertCommand })
+            command.Failed += ex => AddApplicationLog(ex.Message, LogSeverity.Warning);
         _miner.LineReceived += line => QueueExternalLog(line, true);
         _node.LineReceived += line => QueueExternalLog(line, false);
         _miner.Exited += code =>
         {
             if (Application.Current?.Dispatcher is { HasShutdownStarted: false } dispatcher)
-                _ = dispatcher.BeginInvoke(() => OnMinerExited(code));
+                _ = dispatcher.BeginInvoke(async () => await OnMinerExitedAsync(code));
         };
         _node.Exited += code =>
         {
             if (Application.Current?.Dispatcher is { HasShutdownStarted: false } dispatcher)
-                _ = dispatcher.BeginInvoke(() => OnNodeExited(code));
+                _ = dispatcher.BeginInvoke(async () => await OnNodeExitedAsync(code));
         };
     }
 
@@ -169,6 +177,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         NodePort = _settings.NodePort is > 0 and <= 65535 ? _settings.NodePort : 22110;
         SelectedMiningMode = MiningModeOptions.FirstOrDefault(x => x.Id.Equals(_settings.MiningMode, StringComparison.OrdinalIgnoreCase)) ?? MiningModeOptions[0];
         SetLanguage(_settings.Language);
+        if (!string.IsNullOrWhiteSpace(_settingsService.LastLoadWarning))
+            AddApplicationLog($"{T("SettingsLoadFailed")}: {_settingsService.LastLoadWarning}", LogSeverity.Warning);
         await LoadConfigAsync();
         await DetectAsync();
         _ = MonitorAsync(_lifetime.Token);
@@ -234,9 +244,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 Gpus.Add(gpu);
             }
             SelectedPowerGpu = Gpus.FirstOrDefault(x => x.Uuid == selectedPowerUuid) ?? Gpus.FirstOrDefault(x => x.IsSelected) ?? Gpus.FirstOrDefault();
-            var nodeOnline = IsSoloMode && await IsNodeReachableAsync(NodeAddress, NodePort, _lifetime.Token);
-            SetStatus(Gpus.Count == 0 ? "StatusNoGpu" : nodeOnline ? "StatusNodeOnline" : "StatusReady");
-            if (!nodeOnline && IsSoloMode) { NodeSyncKnown = false; NodeSyncPercent = null; }
+            _nodeReachable = IsSoloMode && await IsNodeReachableAsync(NodeAddress, NodePort, _lifetime.Token);
+            SetStatus(Gpus.Count == 0 ? "StatusNoGpu" : _nodeReachable ? "StatusNodeOnline" : "StatusReady");
+            if (!_nodeReachable && IsSoloMode) { NodeSyncKnown = false; NodeSyncPercent = null; }
         }
         catch (Exception ex)
         {
@@ -263,7 +273,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             return !_miner.IsRunning && Gpus.Any(x => x.IsSelected) && !string.IsNullOrWhiteSpace(Wallet)
                 && TryParsePoolEndpoint(PoolAddress, out _, out _);
 
-        var synchronizationReady = NodeSyncKnown ? NodeSyncPercent is >= 100 : !_node.IsOwnedRunning;
+        var synchronizationReady = _node.IsOwnedRunning && NodeSyncKnown && NodeSyncPercent is >= 100;
         return !_miner.IsRunning && Gpus.Any(x => x.IsSelected) && !string.IsNullOrWhiteSpace(Wallet)
             && !string.IsNullOrWhiteSpace(NodeAddress) && synchronizationReady;
     }
@@ -295,7 +305,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             }
             else
             {
-                if ((_node.IsOwnedRunning && !NodeSyncKnown) || NodeSyncKnown && NodeSyncPercent is not >= 100)
+                if (!_node.IsOwnedRunning || !NodeSyncKnown || NodeSyncPercent is not >= 100)
                 {
                     SetStatus("StatusNodeSyncRequired");
                     AddApplicationLog(T("LogNodeSyncRequired"), LogSeverity.Warning);
@@ -311,6 +321,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 {
                     var preparation = await _ipfs.PrepareAsync(_config.Miner, _lifetime.Token);
                     if (preparation.GatewayChanged) AddApplicationLog(string.Format(T("LogIpfsPortChanged"), preparation.OldGatewayPort, preparation.NewGatewayPort));
+                    if (preparation.TemporaryDirectoryRemoved) AddApplicationLog(T("LogIpfsTempRemoved"));
+                    _shutdownManagedKubo = !preparation.KuboWasRunning;
                 }
                 catch (Exception ex)
                 {
@@ -327,7 +339,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             _fallbackStats = new(); Accepted = Rejected = 0; Hashrate = "0.00 MH/s";
             foreach (var gpu in Gpus) gpu.ResetMinerStats(true);
             ModelProgress = 0; ModelProgressVisible = false; ModelStatusText = ""; _lastDisplayedModelPercent = -1;
-            _pausedBlockers.Clear(); _blockingErrorActive = false;
+            _pausedBlockers.Clear(); _activeBlockers.Clear();
             var launch = Gpus.OrderBy(gpu => gpu.Index).Select(gpu =>
             {
                 var tier = gpu.SelectedTier ?? TierOptions.First();
@@ -410,6 +422,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             SetStatus("StatusStopping");
             _minerStopRequested = true;
             await _miner.StopAsync(_config.Miner.StopTimeoutSeconds, _lifetime.Token);
+            await ShutdownManagedKuboAsync();
             await RestoreAllPowerLimitsAsync(true);
             SetStatus("StatusStopped");
             AddApplicationLog(T("LogMinerStopped"));
@@ -422,12 +435,27 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         try
         {
+            if (!IsLoopbackHost(NodeAddress))
+            {
+                SetStatus("StatusStartFailed");
+                AddApplicationLog(T("LogNodeLoopbackOnly"), LogSeverity.Warning);
+                return;
+            }
+            _nodeReachable = await IsNodeReachableAsync(NodeAddress.Trim(), NodePort, _lifetime.Token);
+            if (_nodeReachable)
+            {
+                SetStatus("StatusNodeOnline");
+                AddApplicationLog(T("LogNodeAlreadyRunning"), LogSeverity.Warning);
+                return;
+            }
             SetStatus("StatusStartingNode"); NodeSyncKnown = false; NodeSyncPercent = null;
+            _nodeSyncTracker.Reset(DateTime.UtcNow);
             _nodeStopRequested = false;
             await _node.StartAsync(_config.Node, NodeAddress.Trim(), NodePort, _lifetime.Token);
             AddApplicationLog(T("LogNodeStarted"));
             await Task.Delay(1200, _lifetime.Token);
-            SetStatus(await IsNodeReachableAsync(NodeAddress, NodePort, _lifetime.Token) ? "StatusNodeOnline" : "StatusStartingNode");
+            _nodeReachable = await IsNodeReachableAsync(NodeAddress, NodePort, _lifetime.Token);
+            SetStatus(_nodeReachable ? "StatusNodeOnline" : "StatusStartingNode");
         }
         catch (FileNotFoundException) { SetStatus("StatusNodeUnavailable"); AddApplicationLog(T("LogNodeMissingExe"), LogSeverity.Warning); }
         catch (Exception ex) { SetStatus("StatusStartFailed"); AddApplicationLog(ex.Message, LogSeverity.Warning); }
@@ -440,12 +468,30 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         {
             _nodeStopRequested = true;
             await _node.StopAsync(_lifetime.Token);
+            _nodeReachable = false;
+            _nodeSyncTracker.Reset(DateTime.UtcNow);
             NodeSyncKnown = false; NodeSyncPercent = null;
             SetStatus("StatusNodeUnavailable");
             AddApplicationLog(T("LogNodeStopped"));
         }
         catch (Exception ex) { AddApplicationLog(ex.Message, LogSeverity.Warning); }
         finally { RaiseProcessState(); }
+    }
+
+    private static bool IsLoopbackHost(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        var host = value.Trim();
+        if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase)) return true;
+        return IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address);
+    }
+
+    private async Task ShutdownManagedKuboAsync()
+    {
+        if (!_shutdownManagedKubo) return;
+        try { await _ipfs.ShutdownAsync(_config.Miner, CancellationToken.None); }
+        catch (Exception ex) { AddApplicationLog($"IPFS shutdown: {ex.Message}", LogSeverity.Warning); }
+        finally { _shutdownManagedKubo = false; }
     }
 
     private async Task ApplyPowerAsync()
@@ -475,16 +521,17 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         try
         {
             var current = (await _nvidia.DetectAsync(CancellationToken.None)).FirstOrDefault(x => x.Uuid.Equals(uuid, StringComparison.OrdinalIgnoreCase));
-            if (current is not null && Math.Abs(current.PowerLimitW - change.AppliedWatts) <= 1.0)
+            if (current is null) throw new InvalidOperationException($"GPU {change.GpuIndex} is no longer available.");
+            if (Math.Abs(current.PowerLimitW - change.AppliedWatts) <= 1.0)
             {
                 await _nvidia.SetPowerLimitAsync(current, change.InitialWatts, CancellationToken.None);
                 var vm = Gpus.FirstOrDefault(x => x.Uuid.Equals(uuid, StringComparison.OrdinalIgnoreCase));
                 if (vm is not null) { vm.PowerLimit = change.InitialWatts; Raise(nameof(PowerLimit)); }
                 if (log) AddApplicationLog(string.Format(T("LogPowerRestored"), change.GpuIndex, change.InitialWatts));
             }
+            _powerChanges.Remove(uuid);
         }
         catch (Exception ex) { if (log) AddApplicationLog($"Power restore: {ex.Message}", LogSeverity.Warning); }
-        finally { _powerChanges.Remove(uuid); }
     }
 
     private async Task MonitorAsync(CancellationToken ct)
@@ -496,6 +543,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 IReadOnlyDictionary<int, GpuMetrics>? metrics = null;
                 MinerApiStats? api = null;
+                bool? nodeReachable = null;
                 try { metrics = await _nvidia.GetAllMetricsAsync(ct); }
                 catch (Exception ex)
                 {
@@ -507,15 +555,37 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                     }
                 }
                 if (_miner.IsRunning) api = await _statsApi.TryGetAsync(_config.Miner.StatsAddress, _config.Miner.StatsPort, ct);
+                if (IsSoloMode) nodeReachable = await IsNodeReachableAsync(NodeAddress, NodePort, ct);
                 if (Application.Current?.Dispatcher is { HasShutdownStarted: false } dispatcher)
-                    await dispatcher.InvokeAsync(() => ApplyMonitoring(metrics, api));
+                    await dispatcher.InvokeAsync(() => ApplyMonitoring(metrics, api, nodeReachable));
             }
         }
         catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            if (Application.Current?.Dispatcher is { HasShutdownStarted: false } dispatcher)
+                await dispatcher.InvokeAsync(() => AddApplicationLog($"Monitoring: {ex.Message}", LogSeverity.Warning));
+        }
     }
 
-    private void ApplyMonitoring(IReadOnlyDictionary<int, GpuMetrics>? metrics, MinerApiStats? api)
+    private void ApplyMonitoring(IReadOnlyDictionary<int, GpuMetrics>? metrics, MinerApiStats? api, bool? nodeReachable)
     {
+        if (nodeReachable is bool reachable)
+        {
+            var reachabilityChanged = _nodeReachable != reachable;
+            _nodeReachable = reachable;
+            if (!reachable && !_node.IsOwnedRunning)
+            {
+                NodeSyncKnown = false;
+                NodeSyncPercent = null;
+            }
+            else if (_node.IsOwnedRunning)
+            {
+                ApplyNodeSyncSnapshot(_nodeSyncTracker.Tick(DateTime.UtcNow));
+            }
+            if (reachabilityChanged) RefreshCommands();
+        }
+
         if (metrics is not null)
             foreach (var gpu in Gpus)
                 if (metrics.TryGetValue(gpu.Index, out var value)) gpu.ApplyNvidiaMetrics(value);
@@ -529,7 +599,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             if (IsSoloMode)
             {
                 NodeSyncKnown = true;
-                NodeSyncPercent = api.Synced ? 100 : NodeSyncPercent is < 100 ? NodeSyncPercent : null;
+                NodeSyncPercent = api.Synced ? 100 : NodeSyncPercent is < 100 ? NodeSyncPercent : 99;
             }
             ServiceStatusText = api.OpoiChallengeActive
                 ? T("OpoiInferenceActive")
@@ -544,7 +614,15 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                     Gpus.FirstOrDefault(x => x.Index == physicalIndex)?.ApplyMinerStats(device);
                 }
             }
-            if (_miner.IsRunning && api.Synced) { _blockingErrorActive = false; SetStatus("StatusMining"); }
+            if (_miner.IsRunning && (IsPoolMode || api.Synced))
+            {
+                _activeBlockers.Clear();
+                SetStatus("StatusMining");
+            }
+            else if (_miner.IsRunning && IsSoloMode && !api.Synced && _activeBlockers.Count == 0)
+            {
+                SetStatus("StatusNodeSynchronizing");
+            }
         }
         else if (_miner.IsRunning)
         {
@@ -594,9 +672,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             var folder = Path.GetDirectoryName(executable) ?? AppContext.BaseDirectory;
             Directory.CreateDirectory(folder);
             await File.WriteAllTextAsync(Path.Combine(folder, "escrow.cert"), match.Value.ToLowerInvariant());
-            EscrowCertificate = match.Value.ToLowerInvariant(); EscrowStatus = T("EscrowSaved");
-            _blockingErrorActive = false;
-            AddApplicationLog(T("EscrowSavedLog"));
+            EscrowCertificate = match.Value.ToLowerInvariant();
+            EscrowStatus = T(_miner.IsRunning ? "EscrowSavedRestart" : "EscrowSaved");
+            _activeBlockers.Remove("cert");
+            UpdateBlockingStatus();
+            AddApplicationLog(T(_miner.IsRunning ? "EscrowSavedRestartLog" : "EscrowSavedLog"));
         }
         catch (Exception ex) { EscrowStatus = ex.Message; }
     }
@@ -646,7 +726,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (isMiner)
         {
             var previous = _fallbackStats;
-            _fallbackStats = _logParser.Parse(line, _fallbackStats);
+            _fallbackStats = _logParser.Parse(line, _fallbackStats, IsPoolMode);
             poolStatsChanged = previous.Accepted != _fallbackStats.Accepted || previous.Rejected != _fallbackStats.Rejected;
             if (IsPoolMode && poolStatsChanged)
             {
@@ -659,21 +739,41 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         var blocker = IsSoloMode ? DetectBlocker(line) : null;
         var severity = blocker is not null ? LogSeverity.Error : IsNonBlockingProblem(line) ? LogSeverity.Warning : LogSeverity.Info;
         if (ShouldSuppressRoutineLine(line, isMiner, severity, syncProgressChanged, modelProgressChanged, poolStatsChanged)) return;
+        if (severity == LogSeverity.Warning && IsRepeatedRelayWarning(line))
+        {
+            var summarized = SummarizeRelayWarning(line);
+            if (summarized is null) return;
+            line = summarized;
+        }
         AddLogEntry(line, severity, blocker);
     }
 
     private void AddLogEntry(string line, LogSeverity severity, string? blocker)
     {
-        var wasPaused = IsLogPaused;
-        Logs.Add(new(DateTime.Now, line, severity));
-        while (Logs.Count > 500) Logs.RemoveAt(0);
-        if (wasPaused) NewLogCount++;
         if (blocker is not null)
         {
-            _blockingErrorActive = true;
-            SetStatus(blocker == "cert" ? "StatusAuthorizationRequired" : "StatusIpfsError");
-            if (_pausedBlockers.Add(blocker)) PauseLog(true);
+            _activeBlockers.Add(blocker);
+            UpdateBlockingStatus();
         }
+
+        var entry = new LogEntry(DateTime.Now, line, severity);
+        if (IsLogPaused)
+        {
+            if (_pausedLogEntries.Count >= 1_000) _pausedLogEntries.Dequeue();
+            _pausedLogEntries.Enqueue(entry);
+            NewLogCount = _pausedLogEntries.Count;
+            if (blocker is not null && _pausedBlockers.Add(blocker)) PauseLog(true);
+            return;
+        }
+
+        AppendVisibleLog(entry);
+        if (blocker is not null && _pausedBlockers.Add(blocker)) PauseLog(true);
+    }
+
+    private void AppendVisibleLog(LogEntry entry)
+    {
+        Logs.Add(entry);
+        while (Logs.Count > 500) Logs.RemoveAt(0);
     }
 
     private static bool IsNonBlockingProblem(string line) => Regex.IsMatch(line, @"(?i)(?:\[WARN\]|\bWARN\b|\bWARNING\b|\[ERROR\]|\bERROR\b|cannot start)");
@@ -689,7 +789,27 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             return false;
         }
         if (line.Contains("IBD:", StringComparison.OrdinalIgnoreCase)) return !syncProgressChanged;
-        return Regex.IsMatch(line, @"(?i)\b(?:Accepted \d+ blocks?|Orphaned \d+ blocks?|Unorphaned (?:\d+ )?blocks?|Processed \d+ blocks?|Received \d+ UTXO set chunks so far|Virtual-index cache|Tx throughput stats|P2P health|Connection manager|Registering p2p flows|P2P Connected|Querying DNS seeder|Retrieved \d+ addresses)\b");
+        return Regex.IsMatch(line, @"(?i)\b(?:Accepted (?:\d+ blocks?|block [0-9a-f]{64})|Orphaned \d+ blocks?|Unorphaned (?:\d+ )?blocks?|Processed \d+ blocks?|Received \d+ UTXO set chunks so far|Virtual-index cache|Tx throughput stats|P2P health|Connection manager|Registering p2p flows|P2P Connected|Querying DNS seeder|Retrieved \d+ addresses)\b");
+    }
+
+    private static bool IsRepeatedRelayWarning(string line) =>
+        line.Contains("HandleRelayBlockRequests flow error", StringComparison.OrdinalIgnoreCase)
+        || line.Contains("HandleRelayInvsFlow flow error", StringComparison.OrdinalIgnoreCase);
+
+    private string? SummarizeRelayWarning(string line)
+    {
+        var now = DateTime.UtcNow;
+        _relayWarningCount++;
+        if (_relayWarningCount == 1)
+        {
+            _lastRelayWarningAt = now;
+            return line;
+        }
+        if (now - _lastRelayWarningAt < TimeSpan.FromSeconds(30)) return null;
+        var count = _relayWarningCount;
+        _relayWarningCount = 0;
+        _lastRelayWarningAt = now;
+        return string.Format(T("LogRepeatedRelayWarning"), count);
     }
 
     private static bool TryParseMinerDeviceIndex(string? deviceId, out int index)
@@ -718,24 +838,19 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private bool ParseNodeProgress(string line)
     {
-        var match = Regex.Match(line, @"(?i)\bIBD:\s*Processed.*?\((\d{1,3})%\)");
-        if (match.Success && int.TryParse(match.Groups[1].Value, out var percent))
-        {
-            percent = Math.Clamp(percent, 0, 100);
-            var changed = percent != _lastDisplayedSyncPercent;
-            _lastDisplayedSyncPercent = percent;
-            NodeSyncKnown = true; NodeSyncPercent = percent;
-            if (!_miner.IsRunning) SetStatus(percent >= 100 ? "StatusNodeSynchronized" : "StatusNodeSynchronizing");
-            return changed;
-        }
-        else if (line.Contains("IBD complete", StringComparison.OrdinalIgnoreCase) || line.Contains("initial block download complete", StringComparison.OrdinalIgnoreCase))
-        {
-            var changed = _lastDisplayedSyncPercent != 100;
-            _lastDisplayedSyncPercent = 100;
-            NodeSyncKnown = true; NodeSyncPercent = 100;
-            return changed;
-        }
-        return false;
+        var snapshot = _nodeSyncTracker.Observe(line, DateTime.UtcNow);
+        ApplyNodeSyncSnapshot(snapshot);
+        return snapshot.Changed;
+    }
+
+    private void ApplyNodeSyncSnapshot(NodeSyncSnapshot snapshot)
+    {
+        if (!snapshot.Known) return;
+        NodeSyncKnown = true;
+        NodeSyncPercent = snapshot.Percent;
+        _lastDisplayedSyncPercent = snapshot.Percent ?? -1;
+        if (!_miner.IsRunning)
+            SetStatus(snapshot.Synchronized ? "StatusNodeSynchronized" : "StatusNodeSynchronizing");
     }
 
     private bool ParseModelProgress(string line)
@@ -762,10 +877,15 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void CaptureEscrowKey(string line)
     {
-        var labelled = Regex.Match(line, @"(?i)(?:escrow pubkey\s*:|paste this escrow key\s*:?)\s*([0-9a-f]{64})");
-        var any = Regex.Match(line, @"(?i)(?<![0-9a-f])([0-9a-f]{64})(?![0-9a-f])");
-        var value = labelled.Success ? labelled.Groups[1].Value : line.Trim().Length <= 80 && any.Success ? any.Groups[1].Value : "";
+        var labelled = Regex.Match(line, @"(?i)(?:escrow pubkey\s*:|escrow key to authorise in your wallet\s*:|paste this escrow key\s*:?)\s*([0-9a-f]{64})");
+        if (line.Contains("paste this escrow key", StringComparison.OrdinalIgnoreCase)) _escrowKeyLinesRemaining = 3;
+        var standalone = _escrowKeyLinesRemaining > 0
+            ? Regex.Match(line, @"(?i)^\s*(?:\[[^\]]+\]\s*)?([0-9a-f]{64})\s*$")
+            : Match.Empty;
+        var value = labelled.Success ? labelled.Groups[1].Value : standalone.Success ? standalone.Groups[1].Value : "";
+        if (_escrowKeyLinesRemaining > 0) _escrowKeyLinesRemaining--;
         if (value.Length != 64) return;
+        _escrowKeyLinesRemaining = 0;
         EscrowPublicKey = value.ToLowerInvariant(); EscrowStatus = T("EscrowKeyDetected"); CopyEscrowKeyCommand.Raise();
     }
 
@@ -778,7 +898,17 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public void ResumeLog()
     {
-        _logPausedForError = false; NewLogCount = 0; IsLogPaused = false; Raise(nameof(LogPauseText));
+        _logPausedForError = false;
+        IsLogPaused = false;
+        while (_pausedLogEntries.Count > 0) AppendVisibleLog(_pausedLogEntries.Dequeue());
+        NewLogCount = 0;
+        Raise(nameof(LogPauseText));
+    }
+
+    public string GetLogText()
+    {
+        var lines = Logs.Select(x => x.DisplayText).Concat(_pausedLogEntries.Select(x => x.DisplayText));
+        return string.Join(Environment.NewLine, lines);
     }
 
     public void SetLanguage(string? language)
@@ -826,29 +956,74 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             StatusDot = "#22E66D";
         }
     }
-    private void OnMinerExited(int code)
+
+    private void UpdateBlockingStatus()
+    {
+        if (_activeBlockers.Contains("cert")) SetStatus("StatusAuthorizationRequired");
+        else if (_activeBlockers.Contains("ipfs")) SetStatus("StatusIpfsError");
+        else if (_miner.IsRunning) SetStatus("StatusMining");
+    }
+
+    private async Task OnMinerExitedAsync(int code)
     {
         Hashrate = "0.00 MH/s";
         Uptime = "—";
         ServiceStatusText = "";
         foreach (var gpu in Gpus) gpu.ResetMinerStats(false);
-        if (!_blockingErrorActive) { SetStatus(code == 0 ? "StatusStopped" : "StatusStartFailed"); Status = $"{Status} (code {code})"; }
-        if (!_minerStopRequested) _ = RestorePowerAfterUnexpectedExitAsync();
+        if (!_minerStopRequested)
+        {
+            await ShutdownManagedKuboAsync();
+            await RestorePowerAfterUnexpectedExitAsync();
+        }
+        if (_activeBlockers.Contains("ipfs")) await TryRepairIpfsAfterFailureAsync();
+        if (_activeBlockers.Count == 0)
+        {
+            SetStatus(code == 0 ? "StatusStopped" : "StatusStartFailed");
+            if (code != 0) Status = $"{Status} (code {code})";
+        }
+        else UpdateBlockingStatus();
         RaiseProcessState();
+    }
+
+    private async Task TryRepairIpfsAfterFailureAsync()
+    {
+        try
+        {
+            await Task.Delay(700);
+            if (await _ipfs.RepairTemporaryDirectoryAsync(_config.Miner, CancellationToken.None))
+            {
+                AddApplicationLog(T("LogIpfsTempRemoved"));
+                _activeBlockers.Remove("ipfs");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddApplicationLog($"IPFS: {ex.Message}", LogSeverity.Error);
+        }
     }
     private async Task RestorePowerAfterUnexpectedExitAsync()
     {
         try { await RestoreAllPowerLimitsAsync(true); }
         catch { }
     }
-    private void OnNodeExited(int code)
+    private async Task OnNodeExitedAsync(int code)
     {
+        _nodeReachable = false;
+        _nodeSyncTracker.Reset(DateTime.UtcNow);
         if (!_nodeStopRequested && !_shutdownStarted)
         {
             NodeSyncKnown = false;
             NodeSyncPercent = null;
             SetStatus("StatusNodeUnavailable");
             AddApplicationLog(string.Format(T("LogNodeExited"), code), LogSeverity.Warning);
+            if (_miner.IsRunning)
+            {
+                _minerStopRequested = true;
+                try { await _miner.StopAsync(_config.Miner.StopTimeoutSeconds, CancellationToken.None); } catch { }
+                await ShutdownManagedKuboAsync();
+                await RestorePowerAfterUnexpectedExitAsync();
+                AddApplicationLog(T("LogMinerStoppedNodeExit"), LogSeverity.Warning);
+            }
         }
         RaiseProcessState();
     }
@@ -867,6 +1042,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         NodeSyncKnown = false;
         NodeSyncPercent = null;
         _lastDisplayedSyncPercent = -1;
+        _nodeReachable = false;
+        _nodeSyncTracker.Reset(DateTime.UtcNow);
     }
 
     public void SetWindowPlacement(double width, double height, double left, double top, bool maximized)
@@ -891,6 +1068,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _minerStopRequested = true;
         _nodeStopRequested = true;
         try { await _miner.StopAsync(_config.Miner.StopTimeoutSeconds, CancellationToken.None); } catch { }
+        try { await ShutdownManagedKuboAsync(); } catch { }
         try { await RestoreAllPowerLimitsAsync(false); } catch { }
         try { await _node.StopAsync(CancellationToken.None); } catch { }
         try { await SaveSettingsAsync(); } catch { }

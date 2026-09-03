@@ -12,6 +12,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _vm = new();
     private bool _initialized, _allowClose, _shutdownInProgress;
+    private bool _logScrollPending;
 
     public MainWindow()
     {
@@ -68,10 +69,19 @@ public partial class MainWindow : Window
 
     private void Logs_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        var shouldFollow = !_vm.IsLogPaused;
-        if (!shouldFollow || _vm.Logs.Count == 0) return;
-        var last = _vm.Logs[^1];
-        Dispatcher.BeginInvoke(DispatcherPriority.Background, () => LogList.ScrollIntoView(last));
+        if (_vm.IsLogPaused || _vm.Logs.Count == 0 || _logScrollPending) return;
+        _logScrollPending = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        {
+            _logScrollPending = false;
+            if (!_vm.IsLogPaused && _vm.Logs.Count > 0) LogList.ScrollIntoView(_vm.Logs[^1]);
+        });
+    }
+
+    private void LogList_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (_vm.IsLogPaused || e.ExtentHeightChange != 0 || e.ViewportHeightChange != 0) return;
+        if (e.VerticalOffset < e.ExtentHeight - e.ViewportHeight - 1) _vm.PauseLog();
     }
 
     private void ResumeLog_Click(object sender, RoutedEventArgs e)
@@ -84,8 +94,8 @@ public partial class MainWindow : Window
     {
         try
         {
-            if (_vm.Logs.Count > 0)
-                Clipboard.SetText(string.Join(Environment.NewLine, _vm.Logs.Select(x => x.DisplayText)));
+            var text = _vm.GetLogText();
+            if (!string.IsNullOrWhiteSpace(text)) Clipboard.SetText(text);
         }
         catch (Exception ex)
         {

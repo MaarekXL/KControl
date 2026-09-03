@@ -45,6 +45,8 @@
  <sys:String x:Key="EscrowInvalid" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Invalid certificate: exactly 128 hexadecimal characters are required.</sys:String>
  <sys:String x:Key="EscrowSaved" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificate saved. Restart the miner.</sys:String>
  <sys:String x:Key="EscrowSavedLog" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificate saved to miner/escrow.cert. Restart the miner.</sys:String>
+ <sys:String x:Key="EscrowSavedRestart" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificate saved. Stop and restart the miner to apply it.</sys:String>
+ <sys:String x:Key="EscrowSavedRestartLog" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Certificate saved to miner/escrow.cert. A miner restart is required.</sys:String>
  <sys:String x:Key="Close" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">CLOSE</sys:String>
 
  <sys:String x:Key="StatusInitializing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Initializing…</sys:String>
@@ -81,19 +83,25 @@
  <sys:String x:Key="LogLinesSkipped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Log saturated: {0} old lines were skipped.</sys:String>
 
  <sys:String x:Key="ConfigurationInvalid" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Invalid configuration</sys:String>
+ <sys:String x:Key="SettingsLoadFailed" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Saved settings could not be loaded; defaults were restored</sys:String>
  <sys:String x:Key="LogNodeMissing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">No keryxd node is listening on {0}:{1}.</sys:String>
  <sys:String x:Key="LogInvalidPool" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Invalid pool address. Expected format: stratum+tcp://host:port.</sys:String>
  <sys:String x:Key="LogPoolNotReachable" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">The pool did not answer the connection test. The miner will still start and handle reconnections.</sys:String>
  <sys:String x:Key="LogInvalidWallet" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Invalid address: use the complete address beginning with keryx:.</sys:String>
  <sys:String x:Key="LogNodeSyncRequired" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">The node must finish synchronizing before mining.</sys:String>
+ <sys:String x:Key="LogNodeLoopbackOnly" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">For safety, a node managed by Keryx Control must listen on localhost (127.0.0.1).</sys:String>
+ <sys:String x:Key="LogNodeAlreadyRunning" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">A service is already listening on this node port. Keryx Control will not start a duplicate node.</sys:String>
  <sys:String x:Key="LogMinerStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Miner started.</sys:String>
  <sys:String x:Key="LogPoolMinerStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Miner started in Stratum v3 pool mode.</sys:String>
  <sys:String x:Key="LogMinerStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Miner stopped.</sys:String>
  <sys:String x:Key="LogNodeStarted" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">keryxd node started. The first synchronization can take a long time.</sys:String>
  <sys:String x:Key="LogNodeStopped" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">keryxd node stopped.</sys:String>
  <sys:String x:Key="LogNodeExited" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">The keryxd node exited unexpectedly (code {0}).</sys:String>
+ <sys:String x:Key="LogMinerStoppedNodeExit" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">The miner was stopped because the managed node exited.</sys:String>
  <sys:String x:Key="LogNodeMissingExe" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">keryxd.exe was not found in the keryxd folder.</sys:String>
  <sys:String x:Key="LogIpfsPortChanged" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">IPFS: port {0} was busy; the gateway now uses port {1}.</sys:String>
+ <sys:String x:Key="LogIpfsTempRemoved" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">IPFS: stale blocks/.temp data was removed safely. Models and block data were not touched.</sys:String>
+ <sys:String x:Key="LogRepeatedRelayWarning" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Node network warning repeated {0} times in the last interval.</sys:String>
  <sys:String x:Key="LogStatsPortChanged" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Statistics: port {0} was busy; the miner will use port {1}.</sys:String>
  <sys:String x:Key="LogPowerApplied" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0}: power limit set to {1:0.#} W.</sys:String>
  <sys:String x:Key="LogPowerRestored" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0}: power limit restored to {1:0.#} W.</sys:String>

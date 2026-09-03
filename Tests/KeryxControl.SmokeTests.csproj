@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>KeryxControl.SmokeTests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Models\AppConfig.cs" Link="Source\AppConfig.cs" />
+    <Compile Include="..\Services\GracefulProcessStopper.cs" Link="Source\GracefulProcessStopper.cs" />
+    <Compile Include="..\Services\MinerLogParser.cs" Link="Source\MinerLogParser.cs" />
+    <Compile Include="..\Services\MinerService.cs" Link="Source\MinerService.cs" />
+    <Compile Include="..\Services\NodeSyncTracker.cs" Link="Source\NodeSyncTracker.cs" />
+    <Compile Include="..\Services\IpfsPreflightService.cs" Link="Source\IpfsPreflightService.cs" />
+  </ItemGroup>
+</Project>

@@ -5,71 +5,78 @@ namespace KeryxControl.Services;
 
 public sealed partial class MinerLogParser
 {
-    public MinerStats Parse(string line, MinerStats current)
+    public MinerStats Parse(string line, MinerStats current, bool isPool)
     {
-        var shareSummary = ShareSummary().Match(line);
-        var poolCounterHandled = false;
-        if (shareSummary.Success)
+        current = ParseHashrate(line, current);
+        return isPool ? ParsePoolCounters(line, current) : ParseSoloCounters(line, current);
+    }
+
+    private static MinerStats ParseHashrate(string line, MinerStats current)
+    {
+        var match = Hashrate().Match(line);
+        if (!match.Success
+            || !double.TryParse(match.Groups["value"].Value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+            return current;
+
+        var converted = value * UnitFactor(match.Groups["unit"].Value);
+        return double.IsFinite(converted) && converted >= 0 ? current with { HashrateMh = converted } : current;
+    }
+
+    private static MinerStats ParsePoolCounters(string line, MinerStats current)
+    {
+        var summary = ShareSummary().Match(line);
+        if (summary.Success)
         {
-            var acceptedShares = ParseCount(shareSummary.Groups["accepted"].Value);
-            var rejectedShares = ParseCount(shareSummary.Groups["stale"].Value)
-                + ParseCount(shareSummary.Groups["low"].Value)
-                + ParseCount(shareSummary.Groups["duplicate"].Value);
-            current = current with { Accepted = acceptedShares, Rejected = rejectedShares };
-            poolCounterHandled = true;
-        }
-        else if (ShareAccepted().IsMatch(line))
-        {
-            current = current with { Accepted = current.Accepted + 1 };
-            poolCounterHandled = true;
-        }
-        else if (ShareRejected().IsMatch(line))
-        {
-            current = current with { Rejected = current.Rejected + 1 };
-            poolCounterHandled = true;
+            var accepted = ParseCount(summary.Groups["accepted"].Value);
+            var rejected = ParseCount(summary.Groups["stale"].Value)
+                + ParseCount(summary.Groups["low"].Value)
+                + ParseCount(summary.Groups["duplicate"].Value);
+            return current with { Accepted = accepted, Rejected = rejected };
         }
 
-        var hash = Hashrate().Match(line);
-        var accepted = Accepted().Match(line);
-        var acceptedPrefix = AcceptedPrefix().Match(line);
-        var rejected = Rejected().Match(line);
-        var rejectedPrefix = RejectedPrefix().Match(line);
-        var value = current.HashrateMh;
-        if (hash.Success && double.TryParse(hash.Groups[1].Value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var n))
-        {
-            var converted = n * UnitFactor(hash.Groups[2].Value);
-            if (double.IsFinite(converted) && converted >= 0) value = converted;
-        }
-        var acceptedValue = current.Accepted;
-        var rejectedValue = current.Rejected;
-        var acceptedText = accepted.Success ? accepted.Groups[1].Value : acceptedPrefix.Success ? acceptedPrefix.Groups[1].Value : "";
-        var rejectedText = rejected.Success ? rejected.Groups[1].Value : rejectedPrefix.Success ? rejectedPrefix.Groups[1].Value : "";
-        if (!poolCounterHandled && long.TryParse(acceptedText, NumberStyles.None, CultureInfo.InvariantCulture, out var acceptedCount)) acceptedValue = acceptedCount;
-        if (!poolCounterHandled && long.TryParse(rejectedText, NumberStyles.None, CultureInfo.InvariantCulture, out var rejectedCount)) rejectedValue = rejectedCount;
-        return current with
-        {
-            HashrateMh = value,
-            Accepted = acceptedValue,
-            Rejected = rejectedValue
-        };
+        if (ShareAccepted().IsMatch(line)) return current with { Accepted = current.Accepted + 1 };
+        if (ShareRejected().IsMatch(line)) return current with { Rejected = current.Rejected + 1 };
+        return current;
     }
-    private static long ParseCount(string value) => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var count) ? count : 0;
-    private static double UnitFactor(string unit) => unit.ToUpperInvariant() switch { "H" => 0.000001, "KH" => 0.001, "GH" => 1000, "TH" => 1_000_000, _ => 1 };
-    [GeneratedRegex(@"(?i)(?:hashrate|speed|rate)[^0-9]*([0-9]+(?:[.,][0-9]+)?)\s*(H|KH|MH|GH|TH)(?:/s|s)?")]
+
+    private static MinerStats ParseSoloCounters(string line, MinerStats current)
+    {
+        // "Found a block" is deliberately not counted: the following submit
+        // result is the event that determines the accepted/rejected counter.
+        if (SoloAccepted().IsMatch(line)) return current with { Accepted = current.Accepted + 1 };
+        if (SoloRejected().IsMatch(line)) return current with { Rejected = current.Rejected + 1 };
+        return current;
+    }
+
+    private static long ParseCount(string value) =>
+        long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var count) ? count : 0;
+
+    private static double UnitFactor(string unit) => unit.ToUpperInvariant() switch
+    {
+        "H" => 0.000001,
+        "KH" => 0.001,
+        "GH" => 1000,
+        "TH" => 1_000_000,
+        _ => 1
+    };
+
+    [GeneratedRegex(@"(?i)(?:hashrate|speed|rate)[^0-9]*(?<value>[0-9]+(?:[.,][0-9]+)?)\s*(?<unit>[KMGT]?H)(?:ash)?(?:/s|s)?")]
     private static partial Regex Hashrate();
-    [GeneratedRegex(@"(?i)(?:accepted|acc(?:epted)?)[^0-9]*([0-9]+)")]
-    private static partial Regex Accepted();
-    [GeneratedRegex(@"(?i)\b([0-9]+)\s+accepted\s+blocks?\b")]
-    private static partial Regex AcceptedPrefix();
-    [GeneratedRegex(@"(?i)(?:rejected|rej(?:ected)?)[^0-9]*([0-9]+)")]
-    private static partial Regex Rejected();
-    [GeneratedRegex(@"(?i)\b([0-9]+)\s+rejected\s+blocks?\b")]
-    private static partial Regex RejectedPrefix();
+
     [GeneratedRegex(@"(?i)\bShares:\s*(?:Accepted:\s*(?<accepted>\d+)\s*)?(?:Stale:\s*(?<stale>\d+)\s*)?(?:Low difficulty:\s*(?<low>\d+)\s*)?(?:Duplicate:\s*(?<duplicate>\d+)\s*)?Pending:\s*\d+")]
     private static partial Regex ShareSummary();
+
     [GeneratedRegex(@"(?i)\bShare accepted\b")]
     private static partial Regex ShareAccepted();
+
     [GeneratedRegex(@"(?i)\b(?:Share rejected by pool|Stale share|Duplicate share|Low difficulty share)\b")]
     private static partial Regex ShareRejected();
+
+    [GeneratedRegex(@"(?i)\bBlock submitted successfully\b")]
+    private static partial Regex SoloAccepted();
+
+    [GeneratedRegex(@"(?i)\b(?:Block rejected|Block submission failed|Failed to submit block)\b")]
+    private static partial Regex SoloRejected();
 }
+
 public sealed record MinerStats(double HashrateMh = 0, long Accepted = 0, long Rejected = 0);
