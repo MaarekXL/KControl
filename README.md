@@ -13,8 +13,6 @@ Project: <https://github.com/MaarekXL/KControl>
 
 > Independent community project — not an official Keryx Labs product.
 
-![Interface Keryx Miner](./TURZX_3_INCHES.png)
-
 ## Main features
 
 - Solo mining through a local managed keryxd node.
@@ -37,6 +35,8 @@ The display is enabled by default and the recommended model/port setting is **AU
 Supported profiles are: serial revision A 3.5-inch; serial revision C 2.1/2.8-inch round, 5-inch and older 8.8-inch; native USB 2.8-inch round, 4.6, 5.2, 8, 8.8, 9.2 and 12.3-inch. The 3.5-inch `USB35INCHIPSV2` is hardware-validated; all other profiles are protocol-complete but experimental until tested on physical hardware.
 
 The dashboard shows total hashrate, maximum selected-GPU temperature, power, GPU load, accepted/rejected blocks, uptime and the current miner/node state. Close the vendor `UsbMonitor.exe` first because only one program can own a serial display. Older revision-C products sometimes reuse an ambiguous USB identity, so select the exact size manually when AUTO cannot determine it safely. Native-USB models use the bundled libusb component and may require the seller's WinUSB driver. No Python runtime or vendor monitoring application is required. See `PATCH_NOTES_0.8.0.txt` for the complete release notes.
+
+![Interface Keryx Miner](./TURZX_3_INCHES.png)
 
 ## What is fixed in v0.7.3
 
