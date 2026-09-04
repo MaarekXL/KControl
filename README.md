@@ -13,6 +13,8 @@ Project: <https://github.com/MaarekXL/KControl>
 
 > Independent community project — not an official Keryx Labs product.
 
+![Interface Keryx Miner](./TURZX_3_INCHES.png)
+
 ## Main features
 
 - Solo mining through a local managed keryxd node.
