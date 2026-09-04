@@ -97,8 +97,24 @@
     </Border>
 
     <Border Grid.Column="2" Style="{StaticResource Card}">
-     <StackPanel><TextBlock Text="{DynamicResource Commands}" Style="{StaticResource Title}"/><Button Content="{DynamicResource StartMiner}" Command="{Binding StartCommand}" Style="{StaticResource Primary}"/><Button Content="{DynamicResource StopMiner}" Command="{Binding StopCommand}" Style="{StaticResource Danger}"/><Button Content="{DynamicResource Refresh}" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}"/><Button Content="{DynamicResource OpenAuthorization}" Click="OpenEscrow_Click" Style="{StaticResource Secondary}" Visibility="{Binding IsSoloMode, Converter={StaticResource BoolVisibility}}"/><TextBlock Text="{DynamicResource PoolManagedServices}" Visibility="{Binding IsPoolMode, Converter={StaticResource BoolVisibility}}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextAlignment="Center" Margin="2,4"/><TextBlock Text="{Binding ModelStatusText}" Foreground="#79D895" TextWrapping="Wrap" FontSize="11" HorizontalAlignment="Center" Margin="0,5"/><TextBlock Text="{Binding ServiceStatusText}" Foreground="#F2C66D" TextWrapping="Wrap" FontSize="11" HorizontalAlignment="Center" Margin="0,2"/><ProgressBar Height="6" Minimum="0" Maximum="100" Value="{Binding ModelProgress, Mode=OneWay}" Visibility="{Binding ModelProgressVisible, Converter={StaticResource BoolVisibility}}" Foreground="{StaticResource Green}" Background="#132219"/>
-     </StackPanel>
+     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel><TextBlock Text="{DynamicResource Commands}" Style="{StaticResource Title}"/><Button Content="{Binding StartButtonText}" Command="{Binding StartCommand}" Style="{StaticResource Primary}"/><Button Content="{DynamicResource StopMiner}" Command="{Binding StopCommand}" Style="{StaticResource Danger}"/><Button Content="{DynamicResource Refresh}" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}"/><Button Content="{DynamicResource OpenAuthorization}" Click="OpenEscrow_Click" Style="{StaticResource Secondary}" Visibility="{Binding IsSoloMode, Converter={StaticResource BoolVisibility}}"/><TextBlock Text="{DynamicResource PoolManagedServices}" Visibility="{Binding IsPoolMode, Converter={StaticResource BoolVisibility}}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextAlignment="Center" Margin="2,4"/><TextBlock Text="{Binding ModelStatusText}" Foreground="#79D895" TextWrapping="Wrap" FontSize="11" HorizontalAlignment="Center" Margin="0,5"/><TextBlock Text="{Binding ServiceStatusText}" Foreground="#F2C66D" TextWrapping="Wrap" FontSize="11" HorizontalAlignment="Center" Margin="0,2"/><ProgressBar Height="6" Minimum="0" Maximum="100" Value="{Binding ModelProgress, Mode=OneWay}" Visibility="{Binding ModelProgressVisible, Converter={StaticResource BoolVisibility}}" Foreground="{StaticResource Green}" Background="#132219"/>
+       <Separator Background="{StaticResource Line}" Margin="0,10"/>
+       <Expander IsExpanded="True" Foreground="#E9FFF0">
+        <Expander.Header><StackPanel><TextBlock Text="{DynamicResource TurzxScreen}" Style="{StaticResource Title}" Margin="0,0,0,2"/><TextBlock Text="{Binding TurzxStatusText}" Foreground="{Binding TurzxStatusForeground}" FontSize="10" TextWrapping="Wrap"/></StackPanel></Expander.Header>
+        <StackPanel Margin="0,8,0,0">
+         <CheckBox Content="{DynamicResource TurzxEnable}" IsChecked="{Binding TurzxEnabled}" Margin="0,0,0,8"/>
+         <TextBlock Text="{DynamicResource TurzxModel}" Style="{StaticResource Caption}"/>
+         <ComboBox ItemsSource="{Binding TurzxModelOptions}" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding TurzxModelSetting}" IsEnabled="{Binding TurzxEnabled}" Margin="0,4,0,8"/>
+         <Grid IsEnabled="{Binding TurzxEnabled}"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{DynamicResource TurzxBrightness}" Style="{StaticResource Caption}"/><TextBlock Grid.Column="1" Text="{Binding TurzxBrightness, StringFormat={}{0}%}" Foreground="{StaticResource Green}" FontWeight="Bold"/></Grid>
+         <Slider Minimum="10" Maximum="100" Value="{Binding TurzxBrightness}" TickFrequency="10" IsSnapToTickEnabled="True" IsEnabled="{Binding TurzxEnabled}" Margin="0,4,0,7"/>
+         <TextBlock Text="{DynamicResource TurzxPort}" Style="{StaticResource Caption}"/>
+         <TextBox Text="{Binding TurzxPortSetting, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding TurzxEnabled}" Margin="0,4,0,5"/>
+         <Button Content="{DynamicResource TurzxReconnect}" Command="{Binding ReconnectTurzxCommand}" Style="{StaticResource Secondary}" Padding="5,7" IsEnabled="{Binding TurzxEnabled}"/>
+        </StackPanel>
+       </Expander>
+      </StackPanel>
+     </ScrollViewer>
     </Border>
    </Grid>
 
@@ -117,6 +133,6 @@
    </Border>
   </Grid>
 
-  <Border Grid.Row="2" Background="#070C08" BorderBrush="#122319" BorderThickness="0,1,0,0"><Grid Margin="23,0"><TextBlock Text="{DynamicResource CommunityFrontend}" Style="{StaticResource Caption}" VerticalAlignment="Center"/><TextBlock Text="v0.7.3  •  Keryx Miner 0.5.4-PoM  •  keryxd 1.5.8-PoM" HorizontalAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center"/></Grid></Border>
+  <Border Grid.Row="2" Background="#070C08" BorderBrush="#122319" BorderThickness="0,1,0,0"><Grid Margin="23,0"><TextBlock Text="{DynamicResource CommunityFrontend}" Style="{StaticResource Caption}" VerticalAlignment="Center"/><TextBlock Text="v0.8.0 TURZX  •  Keryx Miner 0.5.4-PoM  •  keryxd 1.6.0-PoM" HorizontalAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center"/></Grid></Border>
  </Grid>
 </Window>

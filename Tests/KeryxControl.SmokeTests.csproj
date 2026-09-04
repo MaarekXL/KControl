@@ -4,14 +4,20 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AssemblyName>KeryxControl.SmokeTests</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Program.cs" />
     <Compile Include="..\Models\AppConfig.cs" Link="Source\AppConfig.cs" />
+    <Compile Include="..\Models\TurzxDisplayModels.cs" Link="Source\TurzxDisplayModels.cs" />
     <Compile Include="..\Services\GracefulProcessStopper.cs" Link="Source\GracefulProcessStopper.cs" />
     <Compile Include="..\Services\MinerLogParser.cs" Link="Source\MinerLogParser.cs" />
     <Compile Include="..\Services\MinerService.cs" Link="Source\MinerService.cs" />
     <Compile Include="..\Services\NodeSyncTracker.cs" Link="Source\NodeSyncTracker.cs" />
     <Compile Include="..\Services\IpfsPreflightService.cs" Link="Source\IpfsPreflightService.cs" />
+    <Compile Include="..\Services\TurzxProtocol.cs" Link="Source\TurzxProtocol.cs" />
+    <Compile Include="..\Services\TurzxDisplayCatalog.cs" Link="Source\TurzxDisplayCatalog.cs" />
+    <Compile Include="..\Services\TurzxNativeUsbProtocol.cs" Link="Source\TurzxNativeUsbProtocol.cs" />
   </ItemGroup>
 </Project>

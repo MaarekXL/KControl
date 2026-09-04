@@ -8,6 +8,10 @@ public sealed class UserSettings
     public string NodeAddress { get; set; } = "127.0.0.1";
     public int NodePort { get; set; } = 22110;
     public string PoolAddress { get; set; } = "";
+    public bool TurzxEnabled { get; set; } = true;
+    public string TurzxModel { get; set; } = "AUTO";
+    public string TurzxPort { get; set; } = "AUTO";
+    public int TurzxBrightness { get; set; } = 70;
     public Dictionary<string, GpuPreference> Gpus { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public double WindowWidth { get; set; } = 1160;
     public double WindowHeight { get; set; } = 790;

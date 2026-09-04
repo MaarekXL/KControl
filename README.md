@@ -1,8 +1,8 @@
-# Keryx Control Manager v0.7.3
+# Keryx Control Manager v0.8.0 TURZX
 
 Community-built Windows x64 interface for Keryx mining with NVIDIA GPUs. Keryx Control starts, stops, configures and monitors the official Keryx components; it is not a miner, node or wallet.
 
-v0.7.3 targets:
+v0.8.0 targets:
 
 - **Keryx Miner v0.5.4-PoM**
 - **keryxd v1.6.0-PoM**
@@ -26,6 +26,15 @@ Project: <https://github.com/MaarekXL/KControl>
 - Per-GPU NVIDIA power-limit control.
 - Filtered, color-coded, scrollable and copyable activity log.
 - French and English interface.
+- Multi-model TURZX/Turing dashboard with automatic detection, brightness control and USB reconnection.
+
+## TURZX / Turing displays
+
+The display is enabled by default and the recommended model/port setting is **AUTO**. Keryx Control selects the correct protocol and renders a responsive landscape dashboard for square, standard, 16:9 and ultra-wide panels.
+
+Supported profiles are: serial revision A 3.5-inch; serial revision C 2.1/2.8-inch round, 5-inch and older 8.8-inch; native USB 2.8-inch round, 4.6, 5.2, 8, 8.8, 9.2 and 12.3-inch. The 3.5-inch `USB35INCHIPSV2` is hardware-validated; all other profiles are protocol-complete but experimental until tested on physical hardware.
+
+The dashboard shows total hashrate, maximum selected-GPU temperature, power, GPU load, accepted/rejected blocks, uptime and the current miner/node state. Close the vendor `UsbMonitor.exe` first because only one program can own a serial display. Older revision-C products sometimes reuse an ambiguous USB identity, so select the exact size manually when AUTO cannot determine it safely. Native-USB models use the bundled libusb component and may require the seller's WinUSB driver. No Python runtime or vendor monitoring application is required. See `PATCH_NOTES_0.8.0.txt` for the complete release notes.
 
 ## What is fixed in v0.7.3
 
@@ -48,7 +57,7 @@ See [PATCH_NOTES_0.7.3.md](PATCH_NOTES_0.7.3.md) for the complete release notes.
 Keryx Control does **not** redistribute Keryx, CUDA, model or wallet binaries. Add the official files yourself:
 
 ```text
-KeryxControl-v0.7.3-win-x64/
+KeryxControl-v0.8.0-TURZX-win-x64/
 ├── KeryxControl.exe
 ├── appsettings.json
 ├── README.txt

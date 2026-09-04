@@ -21,6 +21,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly MinerStatsService _statsApi = new();
     private readonly MinerLogParser _logParser = new();
     private readonly IpfsPreflightService _ipfs = new();
+    private readonly TurzxDisplayService _turzx = new();
     private readonly SettingsService _settingsService = new();
     private readonly NodeSyncTracker _nodeSyncTracker = new();
     private readonly CancellationTokenSource _lifetime = new();
@@ -33,13 +34,15 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly HashSet<string> _activeBlockers = new(StringComparer.OrdinalIgnoreCase);
     private AppConfig _config = new();
     private UserSettings _settings = new();
-    private bool _logDrainScheduled, _logPaused, _logPausedForError, _shutdownStarted, _minerStopRequested, _nodeStopRequested, _nodeReachable, _shutdownManagedKubo;
-    private int _droppedLogCount, _newLogCount, _lastDisplayedSyncPercent = -1, _lastDisplayedModelPercent = -1;
+    private bool _logDrainScheduled, _logPaused, _logPausedForError, _shutdownStarted, _minerStopRequested, _nodeStopRequested, _nodeReachable, _shutdownManagedKubo, _turzxEnabled = true;
+    private int _droppedLogCount, _newLogCount, _lastDisplayedSyncPercent = -1, _lastDisplayedModelPercent = -1, _nodeStabilitySecondsRemaining;
     private string _lastNodeLine = "", _lastMinerLine = "", _language = "fr", _wallet = "", _nodeAddress = "127.0.0.1", _poolAddress = "", _status = "", _statusKey = "StatusInitializing", _statusForeground = "#8BFFAE", _statusDot = "#22E66D";
+    private string _turzxModelSetting = TurzxDisplayCatalog.AutoId, _turzxPortSetting = "AUTO", _turzxStatusText = "", _turzxStatusForeground = "#789184";
     private DateTime _lastNodeLineAt = DateTime.MinValue, _lastMinerLineAt = DateTime.MinValue, _lastMonitoringError = DateTime.MinValue;
     private DateTime _lastRelayWarningAt = DateTime.MinValue;
     private int _relayWarningCount;
     private int _nodePort = 22110;
+    private int _turzxBrightness = 70;
     private long _accepted, _rejected;
     private int? _nodeSyncPercent;
     private bool _nodeSyncKnown;
@@ -55,6 +58,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<GpuDeviceViewModel> Gpus { get; } = [];
     public ObservableCollection<TierOptionViewModel> TierOptions { get; } = [];
     public ObservableCollection<MiningModeOptionViewModel> MiningModeOptions { get; } = [];
+    public ObservableCollection<TurzxModelOptionViewModel> TurzxModelOptions { get; } = [];
     public ObservableCollection<LogEntry> Logs { get; } = [];
 
     public string Language { get => _language; private set => Set(ref _language, value); }
@@ -65,6 +69,46 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public string Status { get => _status; private set => Set(ref _status, value); }
     public string StatusForeground { get => _statusForeground; private set => Set(ref _statusForeground, value); }
     public string StatusDot { get => _statusDot; private set => Set(ref _statusDot, value); }
+    public bool TurzxEnabled
+    {
+        get => _turzxEnabled;
+        set
+        {
+            if (!Set(ref _turzxEnabled, value)) return;
+            ConfigureTurzx();
+            QueueTurzxFrame();
+        }
+    }
+    public string TurzxPortSetting
+    {
+        get => _turzxPortSetting;
+        set
+        {
+            if (!Set(ref _turzxPortSetting, string.IsNullOrWhiteSpace(value) ? "AUTO" : value.Trim().ToUpperInvariant())) return;
+            ConfigureTurzx();
+        }
+    }
+    public string TurzxModelSetting
+    {
+        get => _turzxModelSetting;
+        set
+        {
+            var normalized = TurzxDisplayCatalog.Find(value)?.Id ?? TurzxDisplayCatalog.AutoId;
+            if (!Set(ref _turzxModelSetting, normalized)) return;
+            ConfigureTurzx();
+        }
+    }
+    public int TurzxBrightness
+    {
+        get => _turzxBrightness;
+        set
+        {
+            if (!Set(ref _turzxBrightness, Math.Clamp(value, 0, 100))) return;
+            ConfigureTurzx();
+        }
+    }
+    public string TurzxStatusText { get => _turzxStatusText; private set => Set(ref _turzxStatusText, value); }
+    public string TurzxStatusForeground { get => _turzxStatusForeground; private set => Set(ref _turzxStatusForeground, value); }
     public string Hashrate { get => _hashrate; private set => Set(ref _hashrate, value); }
     public string Power { get => _power; private set => Set(ref _power, value); }
     public string Temperature { get => _temperature; private set => Set(ref _temperature, value); }
@@ -75,6 +119,19 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public long Accepted { get => _accepted; private set => Set(ref _accepted, value); }
     public long Rejected { get => _rejected; private set => Set(ref _rejected, value); }
     public string NodeSyncText { get => _nodeSyncText; private set => Set(ref _nodeSyncText, value); }
+    public string StartButtonText => NodeStabilitySecondsRemaining > 0 && IsSoloMode
+        ? string.Format(T("StartMinerCountdown"), NodeStabilitySecondsRemaining)
+        : T("StartMiner");
+    public int NodeStabilitySecondsRemaining
+    {
+        get => _nodeStabilitySecondsRemaining;
+        private set
+        {
+            if (!Set(ref _nodeStabilitySecondsRemaining, value)) return;
+            Raise(nameof(StartButtonText));
+            RefreshNodeSyncText();
+        }
+    }
     public int? NodeSyncPercent { get => _nodeSyncPercent; private set { Set(ref _nodeSyncPercent, value); RefreshNodeSyncText(); RefreshCommands(); } }
     public bool NodeSyncKnown { get => _nodeSyncKnown; private set { Set(ref _nodeSyncKnown, value); RefreshNodeSyncText(); RefreshCommands(); } }
     public string ModelStatusText { get => _modelStatusText; private set => Set(ref _modelStatusText, value); }
@@ -95,7 +152,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         set
         {
             if (!Set(ref _selectedMiningMode, value)) return;
-            Raise(nameof(IsSoloMode)); Raise(nameof(IsPoolMode)); Raise(nameof(NodeControlsEnabled));
+            Raise(nameof(IsSoloMode)); Raise(nameof(IsPoolMode)); Raise(nameof(NodeControlsEnabled)); Raise(nameof(StartButtonText));
             RefreshNodeSyncText(); RefreshCommands();
             if (!_miner.IsRunning) SetStatus("StatusReady");
         }
@@ -134,12 +191,15 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public AsyncCommand CopyEscrowKeyCommand { get; }
     public AsyncCommand PasteEscrowCertCommand { get; }
     public AsyncCommand SaveEscrowCertCommand { get; }
+    public AsyncCommand ReconnectTurzxCommand { get; }
 
     public MainViewModel()
     {
         MiningModeOptions.Add(new("solo", "Solo — nœud keryxd", "Solo — keryxd node", _language));
         MiningModeOptions.Add(new("pool", "Pool — Stratum v3", "Pool — Stratum v3", _language));
         _selectedMiningMode = MiningModeOptions[0];
+        TurzxModelOptions.Add(new(TurzxDisplayCatalog.AutoId, null, _language));
+        foreach (var profile in TurzxDisplayCatalog.Profiles) TurzxModelOptions.Add(new(profile.Id, profile, _language));
         StartCommand = new(StartAsync, CanStartMiner);
         StopCommand = new(StopAsync, () => _miner.IsRunning);
         StartNodeCommand = new(StartNodeAsync, () => IsSoloMode && !_node.IsOwnedRunning && !_nodeReachable && !_miner.IsRunning);
@@ -150,8 +210,14 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         CopyEscrowKeyCommand = new(CopyEscrowKeyAsync, () => !string.IsNullOrWhiteSpace(EscrowPublicKey));
         PasteEscrowCertCommand = new(PasteEscrowCertificateAsync);
         SaveEscrowCertCommand = new(SaveEscrowCertificateAsync);
-        foreach (var command in new[] { StartCommand, StopCommand, StartNodeCommand, StopNodeCommand, ApplyPowerCommand, RefreshCommand, ResumeLogCommand, CopyEscrowKeyCommand, PasteEscrowCertCommand, SaveEscrowCertCommand })
+        ReconnectTurzxCommand = new(() => { _turzx.ForceReconnect(); QueueTurzxFrame(); return Task.CompletedTask; });
+        foreach (var command in new[] { StartCommand, StopCommand, StartNodeCommand, StopNodeCommand, ApplyPowerCommand, RefreshCommand, ResumeLogCommand, CopyEscrowKeyCommand, PasteEscrowCertCommand, SaveEscrowCertCommand, ReconnectTurzxCommand })
             command.Failed += ex => AddApplicationLog(ex.Message, LogSeverity.Warning);
+        _turzx.StatusChanged += status =>
+        {
+            if (Application.Current?.Dispatcher is { HasShutdownStarted: false } dispatcher)
+                _ = dispatcher.BeginInvoke(() => ApplyTurzxStatus(status));
+        };
         _miner.LineReceived += line => QueueExternalLog(line, true);
         _node.LineReceived += line => QueueExternalLog(line, false);
         _miner.Exited += code =>
@@ -175,12 +241,19 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         PoolAddress = _settings.PoolAddress ?? "";
         NodeAddress = string.IsNullOrWhiteSpace(_settings.NodeAddress) ? "127.0.0.1" : _settings.NodeAddress;
         NodePort = _settings.NodePort is > 0 and <= 65535 ? _settings.NodePort : 22110;
+        _turzxEnabled = _settings.TurzxEnabled;
+        _turzxModelSetting = TurzxDisplayCatalog.Find(_settings.TurzxModel)?.Id ?? TurzxDisplayCatalog.AutoId;
+        _turzxPortSetting = string.IsNullOrWhiteSpace(_settings.TurzxPort) ? "AUTO" : _settings.TurzxPort.Trim().ToUpperInvariant();
+        _turzxBrightness = Math.Clamp(_settings.TurzxBrightness, 0, 100);
+        Raise(nameof(TurzxEnabled)); Raise(nameof(TurzxModelSetting)); Raise(nameof(TurzxPortSetting)); Raise(nameof(TurzxBrightness));
+        ConfigureTurzx();
         SelectedMiningMode = MiningModeOptions.FirstOrDefault(x => x.Id.Equals(_settings.MiningMode, StringComparison.OrdinalIgnoreCase)) ?? MiningModeOptions[0];
         SetLanguage(_settings.Language);
         if (!string.IsNullOrWhiteSpace(_settingsService.LastLoadWarning))
             AddApplicationLog($"{T("SettingsLoadFailed")}: {_settingsService.LastLoadWarning}", LogSeverity.Warning);
         await LoadConfigAsync();
         await DetectAsync();
+        QueueTurzxFrame();
         _ = MonitorAsync(_lifetime.Token);
     }
 
@@ -246,7 +319,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             SelectedPowerGpu = Gpus.FirstOrDefault(x => x.Uuid == selectedPowerUuid) ?? Gpus.FirstOrDefault(x => x.IsSelected) ?? Gpus.FirstOrDefault();
             _nodeReachable = IsSoloMode && await IsNodeReachableAsync(NodeAddress, NodePort, _lifetime.Token);
             SetStatus(Gpus.Count == 0 ? "StatusNoGpu" : _nodeReachable ? "StatusNodeOnline" : "StatusReady");
-            if (!_nodeReachable && IsSoloMode) { NodeSyncKnown = false; NodeSyncPercent = null; }
+            if (!_nodeReachable && IsSoloMode) { NodeSyncKnown = false; NodeSyncPercent = null; NodeStabilitySecondsRemaining = 0; }
         }
         catch (Exception ex)
         {
@@ -448,7 +521,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 AddApplicationLog(T("LogNodeAlreadyRunning"), LogSeverity.Warning);
                 return;
             }
-            SetStatus("StatusStartingNode"); NodeSyncKnown = false; NodeSyncPercent = null;
+            SetStatus("StatusStartingNode"); NodeSyncKnown = false; NodeSyncPercent = null; NodeStabilitySecondsRemaining = 0;
             _nodeSyncTracker.Reset(DateTime.UtcNow);
             _nodeStopRequested = false;
             await _node.StartAsync(_config.Node, NodeAddress.Trim(), NodePort, _lifetime.Token);
@@ -470,7 +543,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             await _node.StopAsync(_lifetime.Token);
             _nodeReachable = false;
             _nodeSyncTracker.Reset(DateTime.UtcNow);
-            NodeSyncKnown = false; NodeSyncPercent = null;
+            NodeSyncKnown = false; NodeSyncPercent = null; NodeStabilitySecondsRemaining = 0;
             SetStatus("StatusNodeUnavailable");
             AddApplicationLog(T("LogNodeStopped"));
         }
@@ -578,6 +651,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 NodeSyncKnown = false;
                 NodeSyncPercent = null;
+                NodeStabilitySecondsRemaining = 0;
             }
             else if (_node.IsOwnedRunning)
             {
@@ -640,6 +714,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         Memory = selectedMetrics.Length > 0 ? $"{selectedMetrics.Sum(x => x.MemoryUsedMiB)} / {selectedMetrics.Sum(x => x.MemoryTotalMiB)} MiB" : "—";
         var hashMh = api?.TotalHashrateHs / 1_000_000d ?? _fallbackStats.HashrateMh;
         Efficiency = totalPower > 0 ? $"{hashMh / totalPower:0.000} MH/W" : "— MH/W";
+        QueueTurzxFrame();
     }
 
     private static string FormatUptime(long seconds)
@@ -848,9 +923,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (!snapshot.Known) return;
         NodeSyncKnown = true;
         NodeSyncPercent = snapshot.Percent;
+        NodeStabilitySecondsRemaining = snapshot.StabilitySecondsRemaining;
         _lastDisplayedSyncPercent = snapshot.Percent ?? -1;
         if (!_miner.IsRunning)
-            SetStatus(snapshot.Synchronized ? "StatusNodeSynchronized" : "StatusNodeSynchronizing");
+            SetStatus(snapshot.Synchronized ? "StatusNodeSynchronized"
+                : snapshot.StabilitySecondsRemaining > 0 ? "StatusNodeStabilizing"
+                : "StatusNodeSynchronizing");
     }
 
     private bool ParseModelProgress(string line)
@@ -921,17 +999,20 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         dictionaries.Add(new ResourceDictionary { Source = new Uri($"Resources/Strings.{normalized}.xaml", UriKind.Relative) });
         foreach (var tier in TierOptions) tier.SetLanguage(normalized);
         foreach (var mode in MiningModeOptions) mode.SetLanguage(normalized);
+        foreach (var model in TurzxModelOptions) model.SetLanguage(normalized);
         foreach (var gpu in Gpus) gpu.SetLanguage(normalized);
-        Status = T(_statusKey); RefreshNodeSyncText(); Raise(nameof(LogPauseText));
+        Status = T(_statusKey); RefreshNodeSyncText(); Raise(nameof(LogPauseText)); Raise(nameof(StartButtonText));
         // The monitoring loop will rebuild this localized status on its next tick.
         if (!string.IsNullOrWhiteSpace(ServiceStatusText)) ServiceStatusText = "";
         if (string.IsNullOrWhiteSpace(EscrowStatus)) EscrowStatus = T("EscrowWaiting");
+        QueueTurzxFrame();
     }
 
     private void RefreshNodeSyncText()
     {
         NodeSyncText = IsPoolMode
-            ? T("PoolNoLocalServices")
+            ? T("PoolNoLocalServices") : NodeStabilitySecondsRemaining > 0
+            ? string.Format(T("NodeStabilizing"), NodeStabilitySecondsRemaining)
             : !NodeSyncKnown ? T("NodeSyncUnknown") : NodeSyncPercent is null ? T("NodeNotSynchronized") : NodeSyncPercent is >= 100 ? T("NodeSynchronized") : string.Format(T("NodeSynchronizingPercent"), NodeSyncPercent);
     }
 
@@ -945,7 +1026,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             StatusForeground = "#FF8C92";
             StatusDot = "#FF6B73";
         }
-        else if (key is "StatusNodeUnavailable" or "StatusNvidiaUnavailable" or "StatusNoGpu" or "StatusNodeSyncRequired" or "StatusNodeSynchronizing")
+        else if (key is "StatusNodeUnavailable" or "StatusNvidiaUnavailable" or "StatusNoGpu" or "StatusNodeSyncRequired" or "StatusNodeSynchronizing" or "StatusNodeStabilizing")
         {
             StatusForeground = "#F2C66D";
             StatusDot = "#F2B84B";
@@ -955,6 +1036,62 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             StatusForeground = "#8BFFAE";
             StatusDot = "#22E66D";
         }
+        QueueTurzxFrame();
+    }
+
+    private void ConfigureTurzx() => _turzx.Configure(TurzxEnabled, TurzxModelSetting, TurzxPortSetting, TurzxBrightness);
+
+    private void QueueTurzxFrame()
+    {
+        if (_shutdownStarted || !TurzxEnabled || Application.Current is null) return;
+        try
+        {
+            var selectedGpuCount = Gpus.Count(x => x.IsSelected);
+            var level = _statusKey is "StatusAuthorizationRequired" or "StatusIpfsError" or "StatusStartFailed"
+                ? TurzxDisplayLevel.Error
+                : _statusKey is "StatusNodeUnavailable" or "StatusNvidiaUnavailable" or "StatusNoGpu" or "StatusNodeSyncRequired" or "StatusNodeSynchronizing" or "StatusNodeStabilizing"
+                    ? TurzxDisplayLevel.Warning
+                    : TurzxDisplayLevel.Normal;
+            var stateLabel = (_statusKey is "StatusNodeSynchronizing" or "StatusNodeStabilizing") && NodeSyncPercent is int syncPercent
+                ? $"SYNC {syncPercent}%"
+                : Status;
+            var snapshot = new TurzxDisplaySnapshot(
+                Language,
+                string.IsNullOrWhiteSpace(stateLabel) ? T("StatusInitializing") : stateLabel,
+                level,
+                Hashrate,
+                Temperature,
+                Power,
+                Utilization,
+                Uptime,
+                Accepted,
+                Rejected,
+                selectedGpuCount);
+            _turzx.Publish(snapshot);
+        }
+        catch (Exception ex)
+        {
+            TurzxStatusText = $"{T("TurzxError")}: {ex.Message}";
+            TurzxStatusForeground = "#FF8C92";
+        }
+    }
+
+    private void ApplyTurzxStatus(TurzxConnectionStatus status)
+    {
+        TurzxStatusForeground = status.State switch
+        {
+            TurzxConnectionState.Connected => "#8BFFAE",
+            TurzxConnectionState.Error => "#FF8C92",
+            _ => "#F2C66D"
+        };
+        TurzxStatusText = status.State switch
+        {
+            TurzxConnectionState.Disabled => T("TurzxDisabled"),
+            TurzxConnectionState.Searching => T("TurzxSearching"),
+            TurzxConnectionState.Connecting => string.Format(T("TurzxConnecting"), status.Model, status.Endpoint),
+            TurzxConnectionState.Connected => string.Format(T("TurzxConnected"), status.Model, status.Endpoint),
+            _ => $"{T("TurzxError")}: {status.Error}"
+        };
     }
 
     private void UpdateBlockingStatus()
@@ -1014,6 +1151,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         {
             NodeSyncKnown = false;
             NodeSyncPercent = null;
+            NodeStabilitySecondsRemaining = 0;
             SetStatus("StatusNodeUnavailable");
             AddApplicationLog(string.Format(T("LogNodeExited"), code), LogSeverity.Warning);
             if (_miner.IsRunning)
@@ -1041,6 +1179,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (IsPoolMode || _miner.IsRunning || _node.IsOwnedRunning) return;
         NodeSyncKnown = false;
         NodeSyncPercent = null;
+        NodeStabilitySecondsRemaining = 0;
         _lastDisplayedSyncPercent = -1;
         _nodeReachable = false;
         _nodeSyncTracker.Reset(DateTime.UtcNow);
@@ -1057,6 +1196,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         _settings.Language = Language; _settings.Wallet = Wallet; _settings.MiningMode = IsPoolMode ? "pool" : "solo";
         _settings.NodeAddress = NodeAddress; _settings.NodePort = NodePort; _settings.PoolAddress = PoolAddress;
+        _settings.TurzxEnabled = TurzxEnabled; _settings.TurzxModel = TurzxModelSetting; _settings.TurzxPort = TurzxPortSetting; _settings.TurzxBrightness = TurzxBrightness;
         _settings.Gpus = Gpus.ToDictionary(x => x.Uuid, x => new GpuPreference { Selected = x.IsSelected, TierId = x.SelectedTier?.Id ?? "auto", PowerLimit = x.PowerLimit }, StringComparer.OrdinalIgnoreCase);
         await _settingsService.SaveAsync(_settings, CancellationToken.None);
     }
@@ -1072,6 +1212,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         try { await RestoreAllPowerLimitsAsync(false); } catch { }
         try { await _node.StopAsync(CancellationToken.None); } catch { }
         try { await SaveSettingsAsync(); } catch { }
+        try { await _turzx.DisposeAsync(); } catch { }
         _lifetime.Cancel();
         await _miner.DisposeAsync(); await _node.DisposeAsync(); _statsApi.Dispose(); _lifetime.Dispose();
     }

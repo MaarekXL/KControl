@@ -22,8 +22,20 @@
  <sys:String x:Key="Memory" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">MEMORY / HASHRATE</sys:String>
  <sys:String x:Key="Commands" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">COMMANDS</sys:String>
  <sys:String x:Key="StartMiner" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">▶  START</sys:String>
+ <sys:String x:Key="StartMinerCountdown" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">▶  START ({0}s)</sys:String>
  <sys:String x:Key="StopMiner" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">■  STOP</sys:String>
  <sys:String x:Key="Refresh" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">↻  REFRESH</sys:String>
+ <sys:String x:Key="TurzxScreen" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">TURZX / TURING DISPLAY</sys:String>
+ <sys:String x:Key="TurzxEnable" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Enable TURZX display</sys:String>
+ <sys:String x:Key="TurzxModel" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">MODEL (AUTO RECOMMENDED)</sys:String>
+ <sys:String x:Key="TurzxBrightness" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">BRIGHTNESS</sys:String>
+ <sys:String x:Key="TurzxPort" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">PORT (AUTO RECOMMENDED)</sys:String>
+ <sys:String x:Key="TurzxReconnect" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">↻  RECONNECT</sys:String>
+ <sys:String x:Key="TurzxDisabled" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">TURZX disabled</sys:String>
+ <sys:String x:Key="TurzxSearching" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Searching for TURZX…</sys:String>
+ <sys:String x:Key="TurzxConnecting" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Connecting · {0} · {1}…</sys:String>
+ <sys:String x:Key="TurzxConnected" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Connected · {0} · {1}</sys:String>
+ <sys:String x:Key="TurzxError" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">TURZX error</sys:String>
  <sys:String x:Key="StartNode" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">START NODE</sys:String>
  <sys:String x:Key="StopNode" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">STOP NODE</sys:String>
  <sys:String x:Key="ActivityLog" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">ACTIVITY LOG</sys:String>
@@ -61,6 +73,7 @@
  <sys:String x:Key="StatusNodeOnline" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Node connected</sys:String>
  <sys:String x:Key="StatusNodeSynchronized" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Node synchronized</sys:String>
  <sys:String x:Key="StatusNodeSynchronizing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Node synchronizing…</sys:String>
+ <sys:String x:Key="StatusNodeStabilizing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Node stability check…</sys:String>
  <sys:String x:Key="StatusNodeSyncRequired" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronization required</sys:String>
  <sys:String x:Key="StatusAuthorizationRequired" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Authorization required</sys:String>
  <sys:String x:Key="StatusIpfsError" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">IPFS error</sys:String>
@@ -72,6 +85,7 @@
  <sys:String x:Key="NodeNotSynchronized" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronization: not complete</sys:String>
  <sys:String x:Key="NodeSynchronized" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronization: complete</sys:String>
  <sys:String x:Key="NodeSynchronizingPercent" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronization: {0}%</sys:String>
+ <sys:String x:Key="NodeStabilizing" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Synchronization completed — waiting {0}s to ensure that no new IBD phase starts.</sys:String>
  <sys:String x:Key="ModelDownloading" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Model download: {0}%</sys:String>
  <sys:String x:Key="ModelReady" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Model loaded</sys:String>
  <sys:String x:Key="PoolNoLocalServices" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">No local node or wallet authorization required</sys:String>

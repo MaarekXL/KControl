@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <TargetPlatformMoniker>Windows,Version=7.0</TargetPlatformMoniker>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>TurzxHardwareTest</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="TurzxHardwareTest.cs" />
+    <Compile Include="..\Models\TurzxDisplayModels.cs" Link="Source\TurzxDisplayModels.cs" />
+    <Compile Include="..\Services\TurzxDashboardRenderer.cs" Link="Source\TurzxDashboardRenderer.cs" />
+    <Compile Include="..\Services\TurzxDisplayService.cs" Link="Source\TurzxDisplayService.cs" />
+    <Compile Include="..\Services\TurzxDisplayCatalog.cs" Link="Source\TurzxDisplayCatalog.cs" />
+    <Compile Include="..\Services\TurzxDeviceDrivers.cs" Link="Source\TurzxDeviceDrivers.cs" />
+    <Compile Include="..\Services\TurzxNativeUsbProtocol.cs" Link="Source\TurzxNativeUsbProtocol.cs" />
+    <Compile Include="..\Services\LibUsbConnection.cs" Link="Source\LibUsbConnection.cs" />
+    <Compile Include="..\Services\TurzxPortDetector.cs" Link="Source\TurzxPortDetector.cs" />
+    <Compile Include="..\Services\TurzxProtocol.cs" Link="Source\TurzxProtocol.cs" />
+    <Compile Include="..\Services\Win32SerialConnection.cs" Link="Source\Win32SerialConnection.cs" />
+  </ItemGroup>
+</Project>

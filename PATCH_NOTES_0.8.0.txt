@@ -1,0 +1,51 @@
+KERYX CONTROL MANAGER v0.8.0 TURZX
+==================================
+
+Nouveautés
+----------
+- Gestion multi-modèles TURZX/Turing avec choix AUTO ou modèle manuel.
+- Trois pilotes intégrés : série révision A, série révision C et USB natif.
+- Tableau de bord adaptatif pour les écrans carrés, classiques, 16:9 et ultra-larges.
+- Présentation spéciale recentrée pour les écrans ronds 480 x 480.
+- Hashrate total multi-GPU, température GPU maximale, puissance totale, charge,
+  blocs acceptés/rejetés, durée et état du minage.
+- Détection automatique, luminosité réglable et reconnexion après débranchement.
+- Rafraîchissement différentiel sur les modèles série afin de limiter le trafic.
+- Composant libusb x64 inclus pour les modèles USB natifs; aucun Python requis.
+
+Modèles pris en charge
+----------------------
+- TURZX 3,5 pouces, 480 x 320, série révision A / USB35INCHIPSV2.
+- TURZX 2,1 pouces rond, 480 x 480, série révision C.
+- TURZX 2,8 pouces rond ancien, 480 x 480, série révision C.
+- TURZX 5 pouces ancien, 800 x 480, série révision C.
+- TURZX 8,8 pouces ancien, 1920 x 480, série révision C.
+- TURZX 2,8 pouces rond USB, 480 x 480, VID_1CBE / PID_0028.
+- TURZX 4,6 pouces USB, 960 x 320, VID_1CBE / PID_0046.
+- TURZX 5,2 pouces USB, 1280 x 720, VID_1CBE / PID_0050.
+- TURZX 8 pouces USB, 1280 x 800, VID_1CBE / PID_0080.
+- TURZX 8,8 pouces USB récent, 1920 x 480, VID_1CBE / PID_0088.
+- TURZX 9,2 pouces USB, 1920 x 462, VID_1CBE / PID_0092.
+- TURZX 12,3 pouces USB, 1920 x 720, VID_1CBE / PID_0123.
+
+Validation
+----------
+- Le TURZX 3,5 pouces USB35INCHIPSV2 a été validé sur matériel réel, en paysage,
+  avec détection automatique sur COM3 et envoi complet de l'image 480 x 320.
+- Tous les autres profils ont passé les tests de compilation, de génération des
+  neuf résolutions et de construction de leurs paquets de protocole.
+- Faute de disposer physiquement de chaque modèle, ces profils sont marqués
+  expérimentaux jusqu'à leur validation sur un écran réel.
+
+Important
+---------
+- Fermer UsbMonitor.exe avant Keryx Control : un seul logiciel peut contrôler un
+  écran série à la fois.
+- AUTO est recommandé pour le 3,5 pouces validé et les modèles USB natifs.
+- Certains anciens modèles série C partagent le même identifiant USB et même le
+  même numéro de série. Keryx Control refuse de deviner une mauvaise résolution :
+  choisir alors précisément 2,1, 2,8 ou 8,8 pouces dans la liste.
+- Pour un modèle USB natif, le pilote WinUSB fourni par le vendeur peut devoir
+  être installé une fois. libusb-1.0.dll est déjà inclus dans l'archive.
+
+Cette version reprend tous les correctifs et fonctions de la v0.7.3.

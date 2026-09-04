@@ -11,18 +11,22 @@
     <TargetPlatformMoniker>Windows,Version=7.0</TargetPlatformMoniker>
     <AssemblyName>KeryxControl</AssemblyName>
     <RootNamespace>KeryxControl</RootNamespace>
-    <Version>0.7.3</Version>
-    <InformationalVersion>0.7.3</InformationalVersion>
+    <Version>0.8.0</Version>
+    <InformationalVersion>0.8.0-turzx</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <AssemblyVersion>0.7.3.0</AssemblyVersion>
-    <FileVersion>0.7.3.0</FileVersion>
+    <AssemblyVersion>0.8.0.0</AssemblyVersion>
+    <FileVersion>0.8.0.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Tests\**\*.cs" />
     <None Update="appsettings.json"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
     <None Update="README.txt"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
     <None Update="PATCH_NOTES_0.7.3.txt"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
+    <None Update="PATCH_NOTES_0.8.0.txt"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
     <None Update="DISCORD_PRESENTATION_EN.txt"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
+    <None Update="THIRD_PARTY_NOTICES.txt"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
+    <None Update="native\libusb-1.0.dll"><Link>libusb-1.0.dll</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory><ExcludeFromSingleFile>true</ExcludeFromSingleFile></None>
+    <None Update="native\LIBUSB-COPYING.txt"><Link>LIBUSB-COPYING.txt</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory></None>
     <None Include="miner\.gitkeep"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
     <None Include="keryxd\.gitkeep"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
   </ItemGroup>

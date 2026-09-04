@@ -1,5 +1,5 @@
-KERYX CONTROL MANAGER v0.7.3
-============================
+KERYX CONTROL MANAGER v0.8.0 TURZX
+==================================
 
 Community-built Windows x64 interface for Keryx Miner v0.5.4-PoM,
 keryxd v1.6.0-PoM and NVIDIA GPUs. Independent community project;
@@ -16,6 +16,7 @@ REQUIREMENTS
   This mandatory H12 upgrade is installed in place; keep KeryxData.
 - Administrator rights only when required to change an NVIDIA power limit.
 - The supplied build is self-contained; no separate .NET installation is needed.
+- Optional TURZX/Turing display from 2.1 to 12.3 inches (see compatibility below).
 
 Keryx Control does not include or download the miner, node, CUDA libraries,
 models, Kubo/IPFS or wallet software.
@@ -39,6 +40,9 @@ escrow.key is private. Back it up and never publish it.
 
 MAIN FEATURES
 -------------
+- Responsive TURZX dashboard for square, standard, 16:9 and ultra-wide screens.
+- Hashrate, maximum GPU temperature, power, load, blocks and uptime on the display.
+- Automatic TURZX reconnection and adjustable brightness. UsbMonitor.exe must be closed.
 - Solo mining through a managed local keryxd node.
 - Keryx Stratum v3 pool mode.
 - Automatic NVIDIA detection and multi-GPU selection.
@@ -50,6 +54,25 @@ MAIN FEATURES
 - NVIDIA power-limit control per GPU.
 - Filtered, colored, scrollable and copyable log.
 - French and English interface.
+
+TURZX COMPATIBILITY
+-------------------
+- Serial revision A: 3.5-inch, 480 x 320 (hardware validated on USB35INCHIPSV2).
+- Serial revision C: 2.1/2.8-inch round 480 x 480, 5-inch 800 x 480,
+  and older 8.8-inch 1920 x 480.
+- Native USB generation: 2.8-inch round 480 x 480, 4.6-inch 960 x 320,
+  5.2-inch 1280 x 720, 8-inch 1280 x 800, 8.8-inch 1920 x 480,
+  9.2-inch 1920 x 462 and 12.3-inch 1920 x 720.
+
+AUTO is recommended for the validated 3.5-inch display and native-USB models.
+Some older revision-C screens reuse the same USB identity for different sizes;
+select their exact size manually if AUTO cannot identify them safely.
+
+Only the 3.5-inch USB35INCHIPSV2 has been tested on physical hardware for this
+release. Other profiles implement the documented protocol and have passed frame,
+packet and build tests, but remain experimental until tested on each real model.
+The bundled libusb component is used only for native-USB models. Depending on the
+seller package, its WinUSB device driver may need to be installed once.
 
 V0.7.3 FIXES
 ------------

@@ -1,0 +1,24 @@
+Keryx Control Manager v0.8.0 TURZX — third-party notices
+========================================================
+
+libusb 1.0.29
+--------------
+Copyright © 2001 Johannes Erdfelt
+Copyright © 2007-2008 Daniel Drake
+Copyright © 2010-2012 Pete Batard
+Copyright © 2012-2025 libusb contributors
+
+libusb is distributed under the GNU Lesser General Public License,
+version 2.1 or (at your option) any later version. The unmodified x64
+libusb-1.0.dll is dynamically loaded by Keryx Control only for TURZX
+native-USB displays. See LIBUSB-COPYING.txt for the full license text.
+
+Source and releases: https://github.com/libusb/libusb
+
+Protocol interoperability references
+------------------------------------
+The TURZX/Turing protocols were independently implemented from publicly
+documented device behaviour and open interoperability information published at:
+https://github.com/mathoudebine/turing-smart-screen-python
+
+No source code from that GPL-3.0-or-later project is included in Keryx Control.
