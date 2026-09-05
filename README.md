@@ -47,6 +47,8 @@ Supported profiles are: serial revision A 3.5-inch; serial revision C 2.1/2.8-in
 
 The dashboard shows total hashrate, maximum selected-GPU temperature, power, GPU load, accepted/rejected blocks, uptime and the current miner/node state. Close the vendor `UsbMonitor.exe` first because only one program can own a serial display. Older revision-C products sometimes reuse an ambiguous USB identity, so select the exact size manually when AUTO cannot determine it safely. Native-USB models use the bundled libusb component and may require the seller's WinUSB driver. No Python runtime or vendor monitoring application is required. See `PATCH_NOTES_0.8.0.txt` for the complete release notes.
 
+![Interface Keryx Miner](./TURZX_3_INCHES.png)
+
 ## What is fixed in v0.7.3
 
 - Node synchronization no longer treats an intermediate `IBD ... (100%)` line as final. keryxd can run several IBD phases; after the final completion message, Keryx Control shows a 30-second stability countdown on the **Start** button. Mining is enabled when no new IBD phase begins during that interval. A live relay block can start the same check when the node was already synchronized before Keryx Control was opened.
