@@ -119,6 +119,13 @@
  <sys:String x:Key="LogStatsPortChanged" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Statistics: port {0} was busy; the miner will use port {1}.</sys:String>
  <sys:String x:Key="LogPowerApplied" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0}: power limit set to {1:0.#} W.</sys:String>
  <sys:String x:Key="LogPowerRestored" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0}: power limit restored to {1:0.#} W.</sys:String>
+ <sys:String x:Key="TrayAlertTitle" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">KERYX ALERT</sys:String>
+ <sys:String x:Key="TrayZeroHashrate" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">The miner is running but hashrate has remained at 0 H/s for 3 minutes. No automatic restart was performed.</sys:String>
+ <sys:String x:Key="TrayHighTemperature" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">High GPU temperature: {0:0} °C. Mining continues; no automatic shutdown.</sys:String>
+ <sys:String x:Key="LogZeroHashrateWarning" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Monitoring: hashrate has remained at 0 H/s for 3 minutes. Action recommended; no automatic restart.</sys:String>
+ <sys:String x:Key="LogTemperatureWarning" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Monitoring: high GPU temperature ({0:0} °C). No automatic shutdown.</sys:String>
+ <sys:String x:Key="LogHashrateRecovered" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Monitoring: hashrate has returned to a normal value.</sys:String>
+ <sys:String x:Key="LogTemperatureRecovered" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Monitoring: GPU temperature has returned below 80 °C.</sys:String>
  <sys:String x:Key="ExitTitle" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Exit Keryx Control</sys:String>
  <sys:String x:Key="ExitConfirmation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">The miner or node is active. Stop them cleanly and exit?</sys:String>
 </ResourceDictionary>

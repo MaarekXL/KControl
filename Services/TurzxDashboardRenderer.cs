@@ -188,7 +188,7 @@ public static class TurzxDashboardRenderer
         DrawText(drawing, value, 18 * scale, Bold, Brush("#E9FFF0"), new Rect(rect.X + 7 * scale, rect.Y + rect.Height * .48, rect.Width - 14 * scale, 31 * scale), culture, TextAlignment.Center);
     }
 
-    private static void DrawText(DrawingContext drawing, string text, double size, Typeface typeface, Brush brush, Rect bounds, CultureInfo culture, TextAlignment alignment = TextAlignment.Left)
+    private static void DrawText(DrawingContext drawing, string text, double size, Typeface typeface, System.Windows.Media.Brush brush, Rect bounds, CultureInfo culture, TextAlignment alignment = TextAlignment.Left)
     {
         var formatted = new FormattedText(text ?? "", culture, FlowDirection.LeftToRight, typeface, size, brush, 1)
         {
@@ -202,7 +202,7 @@ public static class TurzxDashboardRenderer
 
     private static SolidColorBrush Brush(string color)
     {
-        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+        var brush = new SolidColorBrush((System.Windows.Media.Color)ColorConverter.ConvertFromString(color));
         brush.Freeze();
         return brush;
     }

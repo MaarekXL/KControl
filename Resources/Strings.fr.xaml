@@ -119,6 +119,13 @@
  <sys:String x:Key="LogStatsPortChanged" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Statistiques : le port {0} était occupé, le mineur utilisera le port {1}.</sys:String>
  <sys:String x:Key="LogPowerApplied" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0} : power limit réglé à {1:0.#} W.</sys:String>
  <sys:String x:Key="LogPowerRestored" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">GPU {0} : power limit restauré à {1:0.#} W.</sys:String>
+ <sys:String x:Key="TrayAlertTitle" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">ALERTE KERYX</sys:String>
+ <sys:String x:Key="TrayZeroHashrate" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le mineur fonctionne mais le hashrate reste à 0 H/s depuis 3 minutes. Aucun redémarrage automatique n’a été effectué.</sys:String>
+ <sys:String x:Key="TrayHighTemperature" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Température GPU élevée : {0:0} °C. Le minage continue ; aucun arrêt automatique.</sys:String>
+ <sys:String x:Key="LogZeroHashrateWarning" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Surveillance : hashrate à 0 H/s depuis 3 minutes. Intervention recommandée ; aucun redémarrage automatique.</sys:String>
+ <sys:String x:Key="LogTemperatureWarning" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Surveillance : température GPU élevée ({0:0} °C). Aucun arrêt automatique.</sys:String>
+ <sys:String x:Key="LogHashrateRecovered" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Surveillance : le hashrate est revenu à une valeur normale.</sys:String>
+ <sys:String x:Key="LogTemperatureRecovered" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Surveillance : la température GPU est revenue sous 80 °C.</sys:String>
  <sys:String x:Key="ExitTitle" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Quitter Keryx Control</sys:String>
  <sys:String x:Key="ExitConfirmation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">Le mineur ou le nœud est actif. Les arrêter proprement et quitter ?</sys:String>
 </ResourceDictionary>

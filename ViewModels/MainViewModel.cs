@@ -24,6 +24,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly TurzxDisplayService _turzx = new();
     private readonly SettingsService _settingsService = new();
     private readonly NodeSyncTracker _nodeSyncTracker = new();
+    private readonly MiningHealthMonitor _miningHealth = new();
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _pendingLogGate = new();
     private readonly Queue<(string Line, bool IsMiner)> _pendingLogs = new();
@@ -35,6 +36,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private AppConfig _config = new();
     private UserSettings _settings = new();
     private bool _logDrainScheduled, _logPaused, _logPausedForError, _shutdownStarted, _minerStopRequested, _nodeStopRequested, _nodeReachable, _shutdownManagedKubo, _turzxEnabled = true;
+    private bool _zeroHashrateWarning, _temperatureWarning;
     private int _droppedLogCount, _newLogCount, _lastDisplayedSyncPercent = -1, _lastDisplayedModelPercent = -1, _nodeStabilitySecondsRemaining;
     private string _lastNodeLine = "", _lastMinerLine = "", _language = "fr", _wallet = "", _nodeAddress = "127.0.0.1", _poolAddress = "", _status = "", _statusKey = "StatusInitializing", _statusForeground = "#8BFFAE", _statusDot = "#22E66D";
     private string _turzxModelSetting = TurzxDisplayCatalog.AutoId, _turzxPortSetting = "AUTO", _turzxStatusText = "", _turzxStatusForeground = "#789184";
@@ -60,6 +62,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<MiningModeOptionViewModel> MiningModeOptions { get; } = [];
     public ObservableCollection<TurzxModelOptionViewModel> TurzxModelOptions { get; } = [];
     public ObservableCollection<LogEntry> Logs { get; } = [];
+
+    public event Action<MiningHealthAlert>? MiningHealthAlertRaised;
 
     public string Language { get => _language; private set => Set(ref _language, value); }
     public string Wallet { get => _wallet; set { Set(ref _wallet, value); RefreshCommands(); } }
@@ -144,6 +148,21 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool IsMinerRunning => _miner.IsRunning;
     public bool IsNodeRunning => _node.IsOwnedRunning;
     public bool HasActiveProcesses => IsMinerRunning || IsNodeRunning;
+    public int SelectedGpuCount => Gpus.Count(x => x.IsSelected);
+    public TrayIconState TrayState
+    {
+        get
+        {
+            if (_statusKey is "StatusAuthorizationRequired" or "StatusIpfsError" or "StatusStartFailed"
+                or "StatusNodeUnavailable" or "StatusNvidiaUnavailable" or "StatusNoGpu")
+                return TrayIconState.Error;
+            if (_zeroHashrateWarning || _temperatureWarning
+                || _statusKey is "StatusDetecting" or "StatusMiningStarting" or "StatusStartingNode"
+                    or "StatusStopping" or "StatusNodeSyncRequired" or "StatusNodeSynchronizing" or "StatusNodeStabilizing")
+                return TrayIconState.Warning;
+            return IsMinerRunning ? TrayIconState.Mining : TrayIconState.Stopped;
+        }
+    }
     public bool ConfigurationEnabled => !IsMinerRunning;
     public bool ConnectionConfigurationEnabled => !IsMinerRunning && !IsNodeRunning;
     public MiningModeOptionViewModel? SelectedMiningMode
@@ -316,6 +335,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 gpu.PropertyChanged += OnGpuPropertyChanged;
                 Gpus.Add(gpu);
             }
+            Raise(nameof(SelectedGpuCount));
             SelectedPowerGpu = Gpus.FirstOrDefault(x => x.Uuid == selectedPowerUuid) ?? Gpus.FirstOrDefault(x => x.IsSelected) ?? Gpus.FirstOrDefault();
             _nodeReachable = IsSoloMode && await IsNodeReachableAsync(NodeAddress, NodePort, _lifetime.Token);
             SetStatus(Gpus.Count == 0 ? "StatusNoGpu" : _nodeReachable ? "StatusNodeOnline" : "StatusReady");
@@ -336,19 +356,33 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         {
             if (!gpu.IsSelected && _powerChanges.ContainsKey(gpu.Uuid)) _ = RestorePowerForGpuAsync(gpu.Uuid, false);
             if (SelectedPowerGpu is null || !SelectedPowerGpu.IsSelected) SelectedPowerGpu = Gpus.FirstOrDefault(x => x.IsSelected) ?? Gpus.FirstOrDefault();
+            Raise(nameof(SelectedGpuCount));
         }
         RefreshCommands();
     }
 
     private bool CanStartMiner()
     {
+        if (_miner.IsRunning || !Gpus.Any(x => x.IsSelected) || !IsValidWallet(Wallet) || !MinerExecutableExists())
+            return false;
         if (IsPoolMode)
-            return !_miner.IsRunning && Gpus.Any(x => x.IsSelected) && !string.IsNullOrWhiteSpace(Wallet)
-                && TryParsePoolEndpoint(PoolAddress, out _, out _);
+            return TryParsePoolEndpoint(PoolAddress, out _, out _);
 
         var synchronizationReady = _node.IsOwnedRunning && NodeSyncKnown && NodeSyncPercent is >= 100;
-        return !_miner.IsRunning && Gpus.Any(x => x.IsSelected) && !string.IsNullOrWhiteSpace(Wallet)
-            && !string.IsNullOrWhiteSpace(NodeAddress) && synchronizationReady;
+        return !string.IsNullOrWhiteSpace(NodeAddress) && synchronizationReady;
+    }
+
+    private static bool IsValidWallet(string? value) => Regex.IsMatch(value?.Trim() ?? "",
+        @"^keryx:[a-z0-9]{20,}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private bool MinerExecutableExists()
+    {
+        try
+        {
+            var executable = Path.GetFullPath(Environment.ExpandEnvironmentVariables(_config.Miner.Executable), AppContext.BaseDirectory);
+            return File.Exists(executable);
+        }
+        catch { return false; }
     }
 
     private async Task StartAsync()
@@ -357,7 +391,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         {
             var selected = Gpus.Where(x => x.IsSelected).OrderBy(x => x.Index).ToArray();
             if (selected.Length == 0) return;
-            if (!Regex.IsMatch(Wallet.Trim(), @"^keryx:[a-z0-9]{20,}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            if (!IsValidWallet(Wallet))
             {
                 SetStatus("StatusStartFailed");
                 AddApplicationLog(T("LogInvalidWallet"), LogSeverity.Warning);
@@ -410,6 +444,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             if (_config.Miner.StatsPort != originalStatsPort)
                 AddApplicationLog(string.Format(T("LogStatsPortChanged"), originalStatsPort, _config.Miner.StatsPort), LogSeverity.Warning);
             _fallbackStats = new(); Accepted = Rejected = 0; Hashrate = "0.00 MH/s";
+            ResetMiningHealth();
             foreach (var gpu in Gpus) gpu.ResetMinerStats(true);
             ModelProgress = 0; ModelProgressVisible = false; ModelStatusText = ""; _lastDisplayedModelPercent = -1;
             _pausedBlockers.Clear(); _activeBlockers.Clear();
@@ -497,6 +532,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             await _miner.StopAsync(_config.Miner.StopTimeoutSeconds, _lifetime.Token);
             await ShutdownManagedKuboAsync();
             await RestoreAllPowerLimitsAsync(true);
+            ResetMiningHealth();
             SetStatus("StatusStopped");
             AddApplicationLog(T("LogMinerStopped"));
         }
@@ -708,13 +744,45 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         var selected = Gpus.Where(x => x.IsSelected).ToArray();
         var selectedMetrics = metrics?.Values.Where(x => selected.Any(g => g.Index == x.Index)).ToArray() ?? [];
         var totalPower = selectedMetrics.Sum(x => x.PowerW);
+        var maximumTemperature = selectedMetrics.Length > 0 ? selectedMetrics.Max(x => x.TemperatureC) : (double?)null;
         Power = selectedMetrics.Length > 0 ? $"{totalPower:0.0} W" : "— W";
-        Temperature = selectedMetrics.Length > 0 ? $"{selectedMetrics.Max(x => x.TemperatureC):0} °C" : "— °C";
+        Temperature = maximumTemperature is double temperature ? $"{temperature:0} °C" : "— °C";
         Utilization = selectedMetrics.Length > 0 ? $"{selectedMetrics.Average(x => x.UtilizationPercent):0} %" : "— %";
         Memory = selectedMetrics.Length > 0 ? $"{selectedMetrics.Sum(x => x.MemoryUsedMiB)} / {selectedMetrics.Sum(x => x.MemoryTotalMiB)} MiB" : "—";
         var hashMh = api?.TotalHashrateHs / 1_000_000d ?? _fallbackStats.HashrateMh;
         Efficiency = totalPower > 0 ? $"{hashMh / totalPower:0.000} MH/W" : "— MH/W";
+        ApplyMiningHealth(_miningHealth.Evaluate(DateTime.UtcNow, _miner.IsRunning,
+            _statusKey == "StatusMining", hashMh, maximumTemperature, api?.OpoiChallengeActive == true));
         QueueTurzxFrame();
+    }
+
+    private void ApplyMiningHealth(MiningHealthSnapshot health)
+    {
+        var stateChanged = _zeroHashrateWarning != health.ZeroHashrateWarning
+            || _temperatureWarning != health.TemperatureWarning;
+        _zeroHashrateWarning = health.ZeroHashrateWarning;
+        _temperatureWarning = health.TemperatureWarning;
+        if (stateChanged) Raise(nameof(TrayState));
+
+        foreach (var alert in health.NewAlerts)
+        {
+            var message = alert.Kind == MiningHealthAlertKind.ZeroHashrate
+                ? T("LogZeroHashrateWarning")
+                : string.Format(T("LogTemperatureWarning"), alert.Value ?? 0);
+            AddApplicationLog(message, LogSeverity.Warning);
+            MiningHealthAlertRaised?.Invoke(alert);
+        }
+        if (health.HashrateRecovered) AddApplicationLog(T("LogHashrateRecovered"));
+        if (health.TemperatureRecovered) AddApplicationLog(T("LogTemperatureRecovered"));
+    }
+
+    private void ResetMiningHealth()
+    {
+        _miningHealth.Reset();
+        if (!_zeroHashrateWarning && !_temperatureWarning) return;
+        _zeroHashrateWarning = false;
+        _temperatureWarning = false;
+        Raise(nameof(TrayState));
     }
 
     private static string FormatUptime(long seconds)
@@ -1036,6 +1104,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             StatusForeground = "#8BFFAE";
             StatusDot = "#22E66D";
         }
+        Raise(nameof(TrayState));
         QueueTurzxFrame();
     }
 
@@ -1103,6 +1172,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task OnMinerExitedAsync(int code)
     {
+        ResetMiningHealth();
         Hashrate = "0.00 MH/s";
         Uptime = "—";
         ServiceStatusText = "";
@@ -1167,7 +1237,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     }
     private void RaiseProcessState()
     {
-        Raise(nameof(IsMinerRunning)); Raise(nameof(IsNodeRunning)); Raise(nameof(HasActiveProcesses)); Raise(nameof(ConfigurationEnabled)); Raise(nameof(ConnectionConfigurationEnabled)); Raise(nameof(NodeControlsEnabled)); RefreshCommands();
+        Raise(nameof(IsMinerRunning)); Raise(nameof(IsNodeRunning)); Raise(nameof(HasActiveProcesses)); Raise(nameof(ConfigurationEnabled)); Raise(nameof(ConnectionConfigurationEnabled)); Raise(nameof(NodeControlsEnabled)); Raise(nameof(TrayState)); RefreshCommands();
     }
     private void RefreshCommands()
     {

@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <DefaultItemExcludes>$(DefaultItemExcludes);artifacts\**</DefaultItemExcludes>
@@ -17,6 +18,10 @@
     <AssemblyVersion>0.8.0.0</AssemblyVersion>
     <FileVersion>0.8.0.0</FileVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Remove="Tests\**\*.cs" />
     <None Update="appsettings.json"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>

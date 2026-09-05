@@ -1,0 +1,29 @@
+Keryx Control Manager v0.7.3
+
+Keryx Control is an independent community-built Windows x64 interface that makes the official Keryx tools easier to configure, run and monitor.
+
+Compatible with Keryx Miner v0.5.4-PoM and keryxd v1.6.0-PoM.
+
+Main features:
+- Solo mining through a managed local keryxd node
+- Keryx Stratum v3 pool mode
+- Automatic NVIDIA detection and multi-GPU selection
+- Auto or forced PoM model tier per GPU
+- Hashrate, power, temperature, load, fan, VRAM and efficiency monitoring
+- Accurate solo block and pool share counters
+- Integrated escrow authorization workflow
+- Safe IPFS/Kubo preflight and recovery
+- Per-GPU NVIDIA power-limit control
+- Filtered, colored, scrollable and copyable logs
+- French and English interface
+
+v0.7.3 focuses on reliability. It fixes false node synchronization at intermediate IBD 100% stages and shows a bilingual 30-second stability countdown before mining is enabled. It also corrects block/share counting, repairs only the stale IPFS blocks/.temp directory, preserves pre-existing Kubo daemons, improves clean process shutdown and prevents rapid-exit/stale-event crashes. Log scrolling now pauses the live view without losing queued messages; only certificate and IPFS blockers pause in red, while ordinary warnings stay orange.
+
+Power-limit changes use nvidia-smi and may require running Keryx Control as administrator. The original limit is restored when safely possible.
+
+Keryx Control does not contain or modify the official miner/node, does not download their binaries, does not expose a remote-control server and does not send telemetry to the project author. Users provide the official Keryx files themselves.
+
+Windows x64 only. Independent community project — not an official Keryx Labs product.
+
+Source and releases:
+https://github.com/MaarekXL/KControl

@@ -13,6 +13,29 @@ Nouveautés
 - Rafraîchissement différentiel sur les modèles série afin de limiter le trafic.
 - Composant libusb x64 inclus pour les modèles USB natifs; aucun Python requis.
 
+Fonctionnement Windows
+---------------------
+- Réduction dans la zone de notification Windows avec restauration par double-clic.
+- Infobulle native : nom de l'application, nombre de GPU sélectionnés, hashrate
+  total et température GPU maximale.
+- Icône grise à l'arrêt, orange pendant une transition ou une alerte, verte
+  pendant le minage normal et rouge en cas d'erreur.
+- Menu de l'icône : Ouvrir, Démarrer, Arrêter et Quitter. Démarrer reste désactivé
+  tant que le mineur, le wallet, les GPU et la connexion requise ne sont pas prêts.
+- Une seule instance de Keryx Control peut fonctionner. Un second lancement
+  restaure automatiquement la fenêtre déjà ouverte.
+- Quitter pendant que le mineur ou le nœud est actif demande confirmation et
+  effectue un arrêt propre.
+
+Surveillance sans boucle de redémarrage
+---------------------------------------
+- Alerte unique si le mineur devrait calculer mais reste à 0 H/s pendant 3 minutes.
+- La pause normale d'inférence OPoI ne déclenche pas cette alerte.
+- Alerte si la température GPU maximale reste à 85 °C ou plus pendant 30 secondes;
+  l'état revient à la normale sous 80 °C.
+- Ces alertes n'arrêtent ni ne redémarrent automatiquement le mineur. Elles sont
+  volontairement informatives afin d'éviter toute boucle de reconnexion risquée.
+
 Modèles pris en charge
 ----------------------
 - TURZX 3,5 pouces, 480 x 320, série révision A / USB35INCHIPSV2.

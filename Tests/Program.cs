@@ -75,6 +75,46 @@ var usbBrightnessOff = TurzxNativeUsbProtocol.BuildBrightnessCommand(0, new Date
 var usbBrightnessFull = TurzxNativeUsbProtocol.BuildBrightnessCommand(100, new DateTime(2026, 9, 4));
 Check(!usbBrightnessOff.SequenceEqual(usbBrightnessFull), "TURZX native USB brightness payload");
 
+var tooltip = TrayTextFormatter.Format(4, "5,82 MH/s", "61 °C");
+Check(tooltip == "Keryx Control Manager\n4 GPU • 5,82 MH/s • 61 °C", "tray tooltip content");
+Check(tooltip.Length <= 63, "tray tooltip Windows length limit");
+
+var health = new MiningHealthMonitor();
+var healthStart = health.Evaluate(start, true, true, 0, 70, false);
+Check(healthStart.NewAlerts.Count == 0, "zero hashrate must not alert immediately");
+Check(health.Evaluate(start.AddMinutes(2).AddSeconds(59), true, true, 0, 70, false).NewAlerts.Count == 0,
+    "zero hashrate grace period");
+var zeroAlert = health.Evaluate(start.AddMinutes(3), true, true, 0, 70, false);
+Check(zeroAlert.ZeroHashrateWarning
+    && zeroAlert.NewAlerts.SingleOrDefault()?.Kind == MiningHealthAlertKind.ZeroHashrate,
+    "zero hashrate warning after three minutes");
+Check(health.Evaluate(start.AddMinutes(4), true, true, 0, 70, false).NewAlerts.Count == 0,
+    "zero hashrate warning must not repeat continuously");
+Check(health.Evaluate(start.AddMinutes(4).AddSeconds(1), true, true, 0.5, 70, false).HashrateRecovered,
+    "hashrate recovery");
+
+health.Reset();
+health.Evaluate(start, true, true, 1, 85, false);
+Check(health.Evaluate(start.AddSeconds(29), true, true, 1, 85, false).NewAlerts.Count == 0,
+    "temperature warning delay");
+health.Evaluate(start.AddSeconds(30), true, true, 1, 82, false);
+health.Evaluate(start.AddSeconds(31), true, true, 1, 85, false);
+Check(health.Evaluate(start.AddSeconds(60), true, true, 1, 85, false).NewAlerts.Count == 0,
+    "temperature warning requires a continuous interval");
+var temperatureAlert = health.Evaluate(start.AddSeconds(61), true, true, 1, 85, false);
+Check(temperatureAlert.TemperatureWarning
+    && temperatureAlert.NewAlerts.SingleOrDefault()?.Kind == MiningHealthAlertKind.HighTemperature,
+    "temperature alert after sustained threshold");
+Check(health.Evaluate(start.AddSeconds(62), true, true, 1, 82, false).TemperatureWarning,
+    "temperature warning hysteresis");
+Check(health.Evaluate(start.AddSeconds(63), true, true, 1, 80, false).TemperatureRecovered,
+    "temperature warning recovery");
+
+health.Reset();
+health.Evaluate(start, true, true, 0, 70, true);
+Check(health.Evaluate(start.AddMinutes(5), true, true, 0, 70, true).NewAlerts.Count == 0,
+    "OPoI inference must not trigger a zero hashrate warning");
+
 if (failures.Count == 0)
 {
     Console.WriteLine("All Keryx Control v0.8.0 TURZX smoke tests passed.");

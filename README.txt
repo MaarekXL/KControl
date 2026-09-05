@@ -54,6 +54,12 @@ MAIN FEATURES
 - NVIDIA power-limit control per GPU.
 - Filtered, colored, scrollable and copyable log.
 - French and English interface.
+- Windows tray mode with native status tooltip, four-color Keryx icon,
+  double-click restore and Open/Start/Stop/Exit menu.
+- Single-instance protection: launching Keryx Control again restores the existing window.
+- Start remains disabled until the selected mode's prerequisites are ready.
+- One-shot warning after 3 minutes at 0 H/s and sustained-temperature warning at
+  85 C. No automatic miner restart or thermal shutdown is performed.
 
 TURZX COMPATIBILITY
 -------------------
@@ -148,6 +154,20 @@ LOG AND COUNTERS
 - Visible history: 500 entries. Paused queue: up to 1,000 entries.
 - Solo dashboard: successfully submitted blocks. Pool dashboard: accepted and
   explicitly rejected/stale/duplicate/low-difficulty shares.
+
+WINDOWS TRAY
+------------
+Minimizing the main window moves it to the Windows notification area. Hovering
+the K icon uses the normal Windows tooltip timing and shows the application name
+plus a line such as "4 GPU • 5,82 MH/s • 61 °C". Gray means stopped, orange means
+starting/synchronizing/warning, green means normal mining, and red means error.
+Double-click restores the window. The context menu provides Open, Start, Stop
+and Exit; unavailable actions are disabled. Exiting while managed processes are
+active always asks for confirmation.
+
+Keryx Control never starts a second copy. A second launch activates the existing
+window. Health alerts are notifications only: no automatic restart and no
+automatic thermal stop are enabled.
 
 POWER CONTROL
 -------------

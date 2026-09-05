@@ -4,6 +4,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using KeryxControl.Models;
+using KeryxControl.Services;
 using KeryxControl.ViewModels;
 
 namespace KeryxControl;
@@ -11,15 +13,30 @@ namespace KeryxControl;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _vm = new();
+    private readonly TrayIconService _tray = new();
     private bool _initialized, _allowClose, _shutdownInProgress;
     private bool _logScrollPending;
+    private WindowState _restoreWindowState = WindowState.Normal;
 
     public MainWindow()
     {
         InitializeComponent();
+        Icon = _tray.WindowIcon;
         DataContext = _vm;
         Loaded += Window_Loaded;
+        StateChanged += Window_StateChanged;
+        Closed += Window_Closed;
         _vm.Logs.CollectionChanged += Logs_CollectionChanged;
+        _vm.Gpus.CollectionChanged += Gpus_CollectionChanged;
+        _vm.PropertyChanged += ViewModel_PropertyChanged;
+        _vm.StartCommand.CanExecuteChanged += Command_CanExecuteChanged;
+        _vm.StopCommand.CanExecuteChanged += Command_CanExecuteChanged;
+        _vm.MiningHealthAlertRaised += MiningHealthAlert_Raised;
+        _tray.OpenRequested += RestoreFromTray;
+        _tray.StartRequested += Tray_StartRequested;
+        _tray.StopRequested += Tray_StopRequested;
+        _tray.ExitRequested += Tray_ExitRequested;
+        UpdateTray();
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -31,6 +48,7 @@ public partial class MainWindow : Window
             LanguageCombo.SelectedIndex = _vm.Language == "en" ? 1 : 0;
             _initialized = true;
             _vm.SetLanguage(_vm.Language);
+            UpdateTray();
         }
         catch (Exception ex)
         {
@@ -78,6 +96,68 @@ public partial class MainWindow : Window
         });
     }
 
+    private void Window_StateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            Hide();
+            return;
+        }
+        _restoreWindowState = WindowState;
+    }
+
+    public void RestoreFromTray()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(RestoreFromTray);
+            return;
+        }
+        if (_shutdownInProgress) return;
+        Show();
+        WindowState = _restoreWindowState == WindowState.Maximized ? WindowState.Maximized : WindowState.Normal;
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
+    }
+
+    private void Tray_StartRequested()
+    {
+        if (_vm.StartCommand.CanExecute(null)) _vm.StartCommand.Execute(null);
+    }
+
+    private void Tray_StopRequested()
+    {
+        if (_vm.StopCommand.CanExecute(null)) _vm.StopCommand.Execute(null);
+    }
+
+    private void Tray_ExitRequested()
+    {
+        RestoreFromTray();
+        Close();
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) => UpdateTray();
+    private void Gpus_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => UpdateTray();
+    private void Command_CanExecuteChanged(object? sender, EventArgs e) => UpdateTray();
+
+    private void UpdateTray()
+    {
+        _tray.SetLanguage(_vm.Language);
+        _tray.Update(_vm.TrayState, _vm.SelectedGpuCount, _vm.Hashrate, _vm.Temperature,
+            _vm.StartCommand.CanExecute(null), _vm.StopCommand.CanExecute(null));
+    }
+
+    private void MiningHealthAlert_Raised(MiningHealthAlert alert)
+    {
+        var title = Application.Current.TryFindResource("TrayAlertTitle") as string ?? "Keryx Control";
+        var key = alert.Kind == MiningHealthAlertKind.ZeroHashrate ? "TrayZeroHashrate" : "TrayHighTemperature";
+        var template = Application.Current.TryFindResource(key) as string ?? key;
+        var message = alert.Value is double value ? string.Format(template, value) : template;
+        _tray.ShowWarning(title, message);
+    }
+
     private void LogList_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
         if (_vm.IsLogPaused || e.ExtentHeightChange != 0 || e.ViewportHeightChange != 0) return;
@@ -122,5 +202,16 @@ public partial class MainWindow : Window
         _vm.SetWindowPlacement(restoreBounds.Width, restoreBounds.Height, restoreBounds.Left, restoreBounds.Top, WindowState == WindowState.Maximized);
         try { await _vm.ShutdownAsync(); }
         finally { _allowClose = true; Close(); }
+    }
+
+    private void Window_Closed(object? sender, EventArgs e)
+    {
+        _vm.Logs.CollectionChanged -= Logs_CollectionChanged;
+        _vm.Gpus.CollectionChanged -= Gpus_CollectionChanged;
+        _vm.PropertyChanged -= ViewModel_PropertyChanged;
+        _vm.StartCommand.CanExecuteChanged -= Command_CanExecuteChanged;
+        _vm.StopCommand.CanExecuteChanged -= Command_CanExecuteChanged;
+        _vm.MiningHealthAlertRaised -= MiningHealthAlert_Raised;
+        _tray.Dispose();
     }
 }

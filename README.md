@@ -27,6 +27,17 @@ Project: <https://github.com/MaarekXL/KControl>
 - Filtered, color-coded, scrollable and copyable activity log.
 - French and English interface.
 - Multi-model TURZX/Turing dashboard with automatic detection, brightness control and USB reconnection.
+- Windows tray mode with a native status tooltip, four-color icon, double-click restore and Open/Start/Stop/Exit menu.
+- Single-instance protection and guarded Start action.
+- One-shot zero-hashrate and sustained-temperature alerts, with no automatic miner restart or thermal shutdown.
+
+## Windows tray and safety alerts
+
+Minimizing Keryx Control moves it to the Windows notification area. Hovering the K icon uses the normal Windows tooltip timing and shows the application name followed by a compact line such as `4 GPU • 5,82 MH/s • 61 °C`. Gray means stopped, orange means transition or warning, green means normal mining and red means error. Double-click restores the window; the context menu contains **Open**, **Start**, **Stop** and **Exit**.
+
+**Start** is disabled until the miner executable, a valid wallet, at least one selected GPU and the selected mode's connection requirements are ready. A second Keryx Control launch restores the existing instance instead of starting another one. Exiting while the managed miner or node is active requires confirmation.
+
+If the miner should be hashing but remains at `0 H/s` for three minutes, Keryx Control emits one warning and waits for recovery before it can warn again. An OPoI inference pause is excluded. A temperature warning is emitted after the selected GPUs remain at 85 °C or above for 30 seconds, with recovery below 80 °C. These alerts are informational: Keryx Control does not automatically restart the miner or stop it because of temperature.
 
 ## TURZX / Turing displays
 
