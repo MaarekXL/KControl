@@ -1,0 +1,245 @@
+# Keryx Control Manager v0.8.2 TURZX + ESP32 + Suprnova
+
+Community-built Windows x64 interface for Keryx mining with NVIDIA GPUs. Keryx Control starts, stops, configures and monitors the official Keryx components; it is not a miner, node or wallet.
+
+v0.8.2 targets:
+
+- **Keryx Miner v0.5.4-PoM**
+- Optional **keryx-miner-supr** Windows NVIDIA modern build (the validated local package reports v0.13.3)
+- **keryxd v1.6.0-PoM**
+- Windows 10/11 x64
+- NVIDIA RTX 4000/5000 and other CUDA GPUs supported by the official miner
+
+Project: <https://github.com/MaarekXL/KControl>
+
+> Independent community project — not an official Keryx Labs product.
+
+## Main features
+
+- Solo mining through a local managed keryxd node.
+- Pool mining through Keryx Stratum v3.
+- Optional Suprnova pool profile for NVIDIA RTX 40/50 GPUs, with worker name, endpoint and executable selection.
+- Automatic NVIDIA detection and multi-GPU selection.
+- Per-GPU Auto or forced PoM model tier.
+- Hashrate, power, temperature, load, fan, VRAM and efficiency monitoring.
+- Solo accepted/rejected block counters and pool share counters.
+- Integrated wallet authorization and `escrow.cert` creation.
+- Safe IPFS/Kubo preflight and recovery.
+- Per-GPU NVIDIA power-limit control.
+- Filtered, color-coded, scrollable and copyable activity log.
+- French and English interface.
+- Multi-model TURZX/Turing dashboard with automatic detection, brightness control and USB reconnection.
+- Wi-Fi telemetry for the Waveshare ESP32-S3-LCD-4.3 non-touch companion display.
+- Windows tray mode with a native status tooltip, four-color icon, double-click restore and Open/Start/Stop/Exit menu.
+- Single-instance protection and guarded Start action.
+- One-shot zero-hashrate and sustained-temperature alerts, with no automatic miner restart or thermal shutdown.
+
+## Optional Suprnova miner
+
+Choose **Suprnova — NVIDIA RTX 40/50 (pool)** under **Mining software** to use the official Suprnova fork. Keryx Control supplies the `wallet.worker` identity, Stratum endpoint, local statistics API, selected GPUs and per-GPU model choices. The default endpoint is `stratum+tcp://krx.suprnova.cc:4404`; `stratum+ssl://...` endpoints with an explicit port are also accepted.
+
+Keep every file from `keryx-miner-supr-windows-nvidia-pom` together. Keryx Control first checks its portable `miner-suprnova` folder and then the standard Windows Downloads location; **Browse** can select `keryx-miner-supr.exe` elsewhere. The Suprnova/CUDA files are not embedded in the lightweight Keryx Control archive.
+
+The first run may download and prepare a large model before hashrate appears. During the first 30 minutes, Keryx Control treats a running Suprnova process at 0 H/s as model preparation rather than a stalled miner; normal zero-hashrate monitoring then resumes. It never restarts the miner automatically.
+
+## Windows tray and safety alerts
+
+Minimizing Keryx Control moves it to the Windows notification area. Hovering the K icon uses the normal Windows tooltip timing and shows the application name followed by a compact line such as `4 GPU • 5,82 MH/s • 61 °C`. Gray means stopped, orange means transition or warning, green means normal mining and red means error. Double-click restores the window; the context menu contains **Open**, **Start**, **Stop** and **Exit**.
+
+**Start** is disabled until the miner executable, a valid wallet, at least one selected GPU and the selected mode's connection requirements are ready. A second Keryx Control launch restores the existing instance instead of starting another one. Exiting while the managed miner or node is active requires confirmation.
+
+If the miner should be hashing but remains at `0 H/s` for three minutes, Keryx Control emits one warning and waits for recovery before it can warn again. An OPoI inference pause is excluded. A temperature warning is emitted after the selected GPUs remain at 85 °C or above for 30 seconds, with recovery below 80 °C. These alerts are informational: Keryx Control does not automatically restart the miner or stop it because of temperature.
+
+## TURZX / Turing displays
+
+The display is enabled by default and the recommended model/port setting is **AUTO**. Keryx Control selects the correct protocol and renders a responsive landscape dashboard for square, standard, 16:9 and ultra-wide panels.
+
+Supported profiles are: serial revision A 3.5-inch; serial revision C 2.1/2.8-inch round, 5-inch and older 8.8-inch; native USB 2.8-inch round, 4.6, 5.2, 8, 8.8, 9.2 and 12.3-inch. The 3.5-inch `USB35INCHIPSV2` is hardware-validated; all other profiles are protocol-complete but experimental until tested on physical hardware.
+
+The dashboard shows total hashrate, maximum selected-GPU temperature, power, GPU load, accepted/rejected blocks, uptime and the current miner/node state. Close the vendor `UsbMonitor.exe` first because only one program can own a serial display. Older revision-C products sometimes reuse an ambiguous USB identity, so select the exact size manually when AUTO cannot determine it safely. Native-USB models use the bundled libusb component and may require the seller's WinUSB driver. No Python runtime or vendor monitoring application is required. See `PATCH_NOTES_0.8.2.txt` for the complete release notes.
+
+## Waveshare ESP32-S3 Wi-Fi display
+
+Keryx Control also broadcasts a display-only status packet every two seconds on UDP port `42100` for the Waveshare `ESP32-S3-LCD-4.3` non-touch companion firmware. It carries only the operating state, selected GPU count, total hashrate, maximum temperature, total power, accepted/rejected counters and uptime. It never contains the Keryx address, Wi-Fi credentials, authorization data, peers or log lines.
+
+The display receives the packet directly over the local Wi-Fi network and keeps its dashboard visible after an ordinary Remote Desktop disconnection, as long as the Windows session and Keryx Control remain running. Signing out of Windows closes applications and therefore stops transmission. This channel is monitoring-only: the ESP32 cannot start, stop or control the miner.
+
+## What is fixed in v0.7.3
+
+- Node synchronization no longer treats an intermediate `IBD ... (100%)` line as final. keryxd can run several IBD phases; after the final completion message, Keryx Control shows a 30-second stability countdown on the **Start** button. Mining is enabled when no new IBD phase begins during that interval. A live relay block can start the same check when the node was already synchronized before Keryx Control was opened.
+- Solo counters ignore `Found a block` and relayed node blocks. A block is counted only after the miner reports a successful submission, or from the miner statistics API.
+- Pool counters use explicit accepted/stale/low-difficulty/duplicate share messages.
+- The stale `miner/.ipfs/blocks/.temp` directory is repaired before a solo launch and after a matching IPFS startup failure. Models and permanent block data are never removed.
+- An IPFS daemon that was already running before Keryx Control is not stopped by the application.
+- Miner and node receive a graceful Ctrl+C shutdown before the force-stop fallback. This reduces unfinished IPFS writes.
+- Rapid process exits and late output from an old process are isolated, preventing stale events and interface crashes.
+- Log auto-scroll stops when the user scrolls up. Incoming lines are queued, not lost, and **Resume live** returns to the current output.
+- Only the two actionable solo blockers — wallet certificate and IPFS startup — pause the log in red. Ordinary warnings stay orange; repeated relay warnings are summarized.
+- Power limits are restored after a normal stop, application exit and unexpected miner/node exit when the GPU still has the value applied by Keryx Control.
+- Invalid saved settings fall back safely and are backed up for diagnosis.
+
+See [PATCH_NOTES_0.7.3.md](PATCH_NOTES_0.7.3.md) for the complete release notes.
+
+## Package contents
+
+Keryx Control does **not** redistribute Keryx, CUDA, model or wallet binaries. Add the official files yourself:
+
+```text
+KeryxControl-v0.8.2-TURZX-ESP32-SUPRNOVA-win-x64/
+├── KeryxControl.exe
+├── appsettings.json
+├── README.txt
+├── miner/
+│   ├── keryx-miner.exe
+│   ├── official miner DLLs
+│   ├── ipfs.exe                 (if supplied by the miner release)
+│   ├── models/
+│   ├── .ipfs/
+│   ├── escrow.key
+│   └── escrow.cert
+├── miner-suprnova/              (optional)
+│   ├── keryx-miner-supr.exe
+│   └── all DLLs from the same official package
+└── keryxd/
+    ├── keryxd.exe
+    └── keryx-cli.exe            (optional)
+```
+
+Keep these folders/files when updating:
+
+```text
+miner/models/
+miner/.ipfs/
+miner/escrow.key
+miner/escrow.cert
+miner/escrow_state.json
+KeryxData/
+```
+
+`escrow.key` is private and linked to the solo payout authorization. Back it up and never publish it.
+
+## Installation
+
+1. Extract the Keryx Control Windows x64 archive.
+2. Copy Keryx Miner v0.5.4-PoM and all its official companion files into `miner`.
+3. Optional Suprnova: put the complete Windows NVIDIA package into `miner-suprnova`, or select its executable from the application.
+4. For solo mode, copy `keryxd.exe` v1.6.0-PoM into `keryxd`. Keep the existing `KeryxData` directory.
+5. Launch `KeryxControl.exe`.
+6. Run as administrator only when Windows requires elevation to change an NVIDIA power limit.
+
+The supplied Windows package is self-contained; installing .NET is not required to run it.
+
+## Solo mode
+
+1. Select **Solo — keryxd node**.
+2. Enter the complete `keryx:` payout address.
+3. Keep `127.0.0.1:22110` unless you intentionally changed the local configuration.
+4. Start the node and wait for **Synchronization: complete**.
+5. Start the miner.
+
+For reliable synchronization validation, v0.7.3 requires the local node to have been started by this Keryx Control session. A service already listening on the selected port is detected and will not be replaced.
+
+### Wallet authorization
+
+At the first solo start, the miner creates `miner/escrow.key` and prints a 64-character public escrow key.
+
+1. Open **Authorization** in Keryx Control and copy the detected public key.
+2. Paste it into **Authorise a miner** in the Keryx wallet.
+3. Copy the returned `--escrow-cert` line.
+4. Paste it into Keryx Control and save it.
+5. Stop and restart the miner to load the new `miner/escrow.cert`.
+
+The certificate contains 128 hexadecimal characters and must match both the payout address and the existing `escrow.key`. Keryx Control never reads the private key contents.
+
+## Pool mode
+
+1. Select **Pool — Stratum v3**.
+2. Enter the payout address.
+3. Enter the full pool endpoint, for example `stratum+tcp://pool.example.org:PORT`.
+4. Start the miner.
+
+A local node and escrow authorization are not required at pool startup. The pool must support Keryx Stratum v3/PoM.
+
+## Multi-GPU and model profiles
+
+One official miner process receives only the checked GPUs through `CUDA_VISIBLE_DEVICES`. GPU UUIDs and `CUDA_DEVICE_ORDER=PCI_BUS_ID` keep device ordering stable. Forced model tiers are generated in the same logical order as the selected GPUs.
+
+| Profile | Intended minimum VRAM | Model family in v0.5.4-PoM |
+|---|---:|---|
+| Very Light | 8 GB | Qwen3.5-9B |
+| Light | 12 GB | GLM-4-9B |
+| Standard | 16 GB | Gemma-4-12B |
+| High | 24 GB | Qwen3.6-27B |
+| Very High | 32 GB | Kimi-Linear-48B |
+
+**Auto** chooses the highest configured tier compatible with the VRAM reported by NVIDIA. The miner remains the authority and may downgrade a model. Forcing an oversized tier can cause an out-of-memory error.
+
+## IPFS/Kubo behavior
+
+In solo mode Keryx Control:
+
+- uses the portable repository `miner/.ipfs` through `IPFS_PATH`;
+- validates the IPFS configuration and API before launch;
+- removes only the exact stale path `miner/.ipfs/blocks/.temp` when Kubo is not running;
+- moves a busy gateway port 8080 to a free port from 8081 through 8099 after backing up the configuration;
+- rotates an oversized Kubo log;
+- stops Kubo only when it was not already running before this miner launch.
+
+The application never deletes `miner/models`, permanent IPFS blocks or the whole IPFS repository.
+
+## Log and counter behavior
+
+- Green: normal activity.
+- Orange: non-blocking warning.
+- Red + automatic pause: IPFS startup blocker or wallet certificate blocker.
+- Scrolling upward pauses only the live view; collection continues in a bounded queue.
+- The visible list keeps the latest 500 entries and the paused queue keeps up to 1,000 new entries.
+- **Copy log** includes both visible and queued entries.
+
+In solo mode the dashboard counts submitted blocks, not every candidate found by the GPU and not blocks received from peers. In pool mode it counts accepted and explicitly rejected/stale/duplicate/low-difficulty shares.
+
+## Power control
+
+Keryx Control uses `nvidia-smi` to set the selected GPU power limit. Windows/NVIDIA may require administrator rights. If the command is refused, close the application and relaunch it with **Run as administrator**.
+
+The original power limit is remembered per GPU and restored when possible. Restoration is deliberately skipped if another program changed the limit after Keryx Control applied it, so the application does not overwrite a newer user setting.
+
+Keryx Control does not change clocks, voltage, fans, FP32, CUDA cores or miner kernels.
+
+## Sensor limitations
+
+Memory-junction temperature is shown only when the official miner statistics API or the available NVIDIA interface supplies it. `nvidia-smi` does not expose this sensor on every consumer GPU/driver combination, even when LibreHardwareMonitor can obtain it through a different low-level path.
+
+## Privacy and scope
+
+Keryx Control:
+
+- does not mine by itself;
+- does not modify the official miner or node;
+- does not download Keryx executables;
+- does not contain a remote-control web server;
+- does not send telemetry to the project author or any Internet service;
+- broadcasts only the documented display statistics on the local network for the optional ESP32 companion;
+- stores settings locally under `%LOCALAPPDATA%\KeryxControl`;
+- keeps node data locally in `KeryxData`.
+
+Normal network traffic comes from the official Keryx components, any configured pool endpoint, and the optional local ESP32 display broadcast described above.
+
+## Build from source
+
+Requirements: Windows, .NET 8 SDK and the Windows Desktop workload.
+
+```powershell
+dotnet build KeryxControl.csproj -c Release -r win-x64
+dotnet publish KeryxControl.csproj -c Release -r win-x64 --self-contained true
+dotnet run --project Tests/KeryxControl.SmokeTests.csproj -c Release
+```
+
+No third-party NuGet package is required by Keryx Control.
+
+## Known limits
+
+- Windows x64 only. Native Linux support and Wine are not part of v0.7.3.
+- Node synchronization is derived from keryxd v1.6.0-PoM logs because no stable node status API is bundled with this frontend.
+- Miner statistics depend on the local `/stats` endpoint and its current schema; the log parser supplies a conservative fallback.
+- Keryx Control cannot guarantee support for GPU architectures unsupported by the official CUDA miner build.
