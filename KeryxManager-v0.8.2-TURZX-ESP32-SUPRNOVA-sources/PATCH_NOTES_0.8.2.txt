@@ -1,0 +1,49 @@
+KERYX CONTROL MANAGER v0.8.2 TURZX + ESP32 + SUPRNOVA
+=====================================================
+
+Mineur Suprnova optionnel
+-------------------------
+- Ajout de « Keryx Miner Suprnova — NVIDIA RTX 40/50 (pool) » dans le
+  sélecteur de logiciel de minage. Le mineur Keryx précédent reste le choix
+  par défaut et conserve les modes solo et pool existants.
+- Prise en charge du paquet Windows NVIDIA moderne keryx-miner-supr et de sa
+  syntaxe officielle : adresse wallet.worker, endpoint Stratum, API locale et
+  sortie texte compatible avec le journal Keryx Control.
+- Endpoint par défaut : stratum+tcp://krx.suprnova.cc:4404. Les endpoints
+  stratum+tcp et stratum+ssl avec port explicite sont acceptés.
+- Le nom du worker, l'endpoint et le chemin du mineur sont enregistrés dans les
+  paramètres locaux. Le chemin accepte le dossier complet ou l'exécutable.
+- Détection automatique du sous-dossier portable miner-suprnova ainsi que du
+  paquet keryx-miner-supr-windows-nvidia-pom placé dans le dossier Téléchargements.
+- Bouton Parcourir pour choisir keryx-miner-supr.exe si le paquet est ailleurs.
+
+Supervision et sécurité
+-----------------------
+- Les GPU sélectionnés restent isolés par CUDA_VISIBLE_DEVICES, dans un ordre
+  stable, avec prise en charge multi-GPU et des modèles par carte.
+- Le mineur Suprnova est lancé avec son API locale uniquement sur 127.0.0.1 et
+  en mode de journal non interactif. Aucun serveur de contrôle distant n'est
+  ouvert par Keryx Control.
+- Les températures et la puissance restent lues par nvidia-smi même si l'API
+  du mineur n'est pas encore disponible.
+- Le hashrate et les compteurs de shares disposent toujours du parseur de
+  journal de secours.
+- Une période de préparation de 30 minutes évite l'alerte erronée 0 H/s pendant
+  le premier téléchargement et le premier chargement des modèles. L'alerte
+  normale reprend ensuite. Aucun redémarrage automatique n'est effectué.
+- Keryx Control ne transmet jamais le wallet ni le worker aux écrans TURZX ou
+  ESP32. L'écran affiche seulement le libellé « Keryx Suprnova ».
+
+Distribution
+------------
+- Le binaire Suprnova et ses bibliothèques CUDA ne sont pas redistribués dans
+  l'archive légère de Keryx Control. Conservez tous les fichiers du paquet
+  officiel ensemble dans miner-suprnova ou sélectionnez leur dossier.
+- Le paquet local utilisé pour la validation annonce keryx-miner 0.13.3.
+
+Compatibilité conservée
+-----------------------
+- Fonctions v0.8.1 inchangées : TURZX/Turing, Waveshare ESP32-S3-LCD-4.3,
+  télémétrie locale, tray Windows, protection mono-instance, alertes de santé,
+  contrôle de puissance et absence de redémarrage automatique.
+- Base existante conservée : Keryx Miner 0.5.4-PoM et keryxd 1.6.0-PoM.

@@ -1,0 +1,36 @@
+KERYX DISPLAY v0.8.1 - WAVESHARE ESP32-S3-LCD-4.3 NON TACTILE
+================================================================
+
+Matériel compatible
+-------------------
+- Waveshare ESP32-S3-LCD-4.3 non tactile.
+- Dalle RGB 800 x 480 contrôlée par ST7262.
+- Ne pas utiliser ces fichiers sur le modèle tactile ou sur un autre écran.
+
+Fichiers
+--------
+- firmware.factory.bin : installation complète à écrire à l'adresse 0x0000.
+  Cette opération réinitialise aussi la configuration Wi-Fi de l'écran.
+- firmware-update.bin : mise à jour de l'application à écrire à l'adresse
+  0x10000. Cette méthode conserve normalement le profil Wi-Fi enregistré.
+
+Premier démarrage
+----------------
+1. L'écran crée le réseau KERYX-DISPLAY-XXXXXX.
+2. S'y connecter avec le mot de passe : keryxdisplay
+3. Ouvrir http://192.168.4.1
+4. Renseigner le même réseau Wi-Fi que celui du PC exécutant Keryx Manager.
+5. L'écran affiche EN ATTENTE jusqu'à la première télémétrie reçue.
+
+Communication
+-------------
+- UDP local, port 42100, protocole KX1.
+- Statistiques d'affichage uniquement.
+- Aucun wallet, certificat, journal ou identifiant Wi-Fi n'est transmis.
+- L'écran ne peut ni démarrer ni arrêter le mineur ou le nœud.
+
+Remarque de redémarrage
+-----------------------
+Selon le mode USB de cette carte, un redémarrage logiciel après programmation
+peut ne pas relancer immédiatement le dashboard. Débrancher puis rebrancher
+l'alimentation USB une fois si l'écran reste sur son image précédente.
